@@ -54,6 +54,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { success, error } from '@/utils/message'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -80,12 +81,12 @@ const handleProfileUpdate = async () => {
       body: JSON.stringify(profile.value)
     })
     if (response.ok) {
-      alert('保存成功')
+      success('保存成功')
     } else {
-      alert('保存失败')
+      error('保存失败')
     }
-  } catch (error) {
-    alert('保存失败: ' + error.message)
+  } catch (err) {
+    error('保存失败: ' + err.message)
   } finally {
     updating.value = false
   }
@@ -93,7 +94,7 @@ const handleProfileUpdate = async () => {
 
 const handlePasswordChange = async () => {
   if (passwordForm.value.new_password !== passwordForm.value.confirm_password) {
-    alert('两次输入的密码不一致')
+    error('两次输入的密码不一致')
     return
   }
   changing.value = true
@@ -110,14 +111,14 @@ const handlePasswordChange = async () => {
       })
     })
     if (response.ok) {
-      alert('密码修改成功')
+      success('密码修改成功')
       passwordForm.value = { old_password: '', new_password: '', confirm_password: '' }
     } else {
       const data = await response.json()
-      alert('修改失败: ' + (data.detail || '未知错误'))
+      error('修改失败: ' + (data.detail || '未知错误'))
     }
-  } catch (error) {
-    alert('修改失败: ' + error.message)
+  } catch (err) {
+    error('修改失败: ' + err.message)
   } finally {
     changing.value = false
   }
@@ -132,8 +133,8 @@ onMounted(async () => {
     })
     user.value = await response.json()
     profile.value = { username: user.value.username, email: user.value.email || '' }
-  } catch (error) {
-    console.error('加载用户信息失败:', error)
+  } catch (err) {
+    console.error('加载用户信息失败:', err)
   }
 })
 </script>

@@ -27,6 +27,12 @@ class Task(Base, UUIDMixin, TimestampMixin):
         index=True
     )
 
+    name: Mapped[str] = mapped_column(
+        String(200),
+        nullable=False,
+        comment="任务名称（源文件名）"
+    )
+
     preset_id: Mapped[Optional[str]] = mapped_column(
         ForeignKey("presets.id", ondelete="SET NULL"),
         nullable=True
@@ -91,6 +97,12 @@ class Task(Base, UUIDMixin, TimestampMixin):
 
     user: Mapped["User"] = relationship("User", back_populates="tasks")
     preset: Mapped[Optional["Preset"]] = relationship("Preset", back_populates="tasks")
+    logs: Mapped[list["TaskLog"]] = relationship(
+        "TaskLog",
+        back_populates="task",
+        cascade="all, delete-orphan",
+        order_by="TaskLog.created_at"
+    )
 
     def __repr__(self) -> str:
         return f"<Task(id={self.id}, status={self.status}, progress={self.progress}%)>"

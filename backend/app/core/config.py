@@ -49,6 +49,17 @@ class Settings(BaseSettings):
     STORAGE_TYPE: str = Field(default="local", pattern="^(local|s3)$")
     STORAGE_PATH: Path = Field(default=Path("./data"))
 
+    @field_validator("STORAGE_PATH", mode="before")
+    @classmethod
+    def validate_storage_path(cls, v):
+        """确保存储路径是绝对路径，基于 backend 目录"""
+        path = Path(v) if not isinstance(v, Path) else v
+        if not path.is_absolute():
+            # 获取 backend 目录（config.py 所在目录的父目录）
+            backend_dir = Path(__file__).parent.parent.parent
+            path = backend_dir / path
+        return path.resolve()
+
     # JWT 配置
     JWT_SECRET: str = Field(min_length=32)
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, gt=0)
@@ -59,7 +70,9 @@ class Settings(BaseSettings):
 
     @property
     def CORS_ORIGINS_LIST(self) -> List[str]:
-        """解析 CORS 源列表"""
+        """解析 CORS 源列表，开发环境允许所有来源"""
+        if self.APP_ENV == "development":
+            return ["*"]
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
 
     # 文件上传配置

@@ -1,13 +1,40 @@
-"""RQ 转码任务"""
-from rq import get_current_job
-from app.database import AsyncSessionLocal
-from app.models.task import Task, TaskStatus
-from app.services.storage import get_storage
+"""RQ 转码任务入口"""
 import asyncio
+import logging
+from datetime import datetime, timezone
+from rq import get_current_job
+
+logger = logging.getLogger(__name__)
+
 
 def encode_task(task_id: str, user_id: str) -> str:
-    """执行转码任务"""
-    return asyncio.run(_encode_task_async(task_id, user_id))
+    """
+    RQ 任务入口：执行转码任务
+
+    Args:
+        task_id: 任务ID
+        user_id: 用户ID
+
+    Returns:
+        结果消息
+    """
+    # 在 RQ worker 中可能已有事件循环
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # 如果循环正在运行，创建新的
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(
+                    asyncio.run,
+                    _encode_task_async(task_id, user_id)
+                )
+                return future.result()
+        else:
+            return loop.run_until_complete(_encode_task_async(task_id, user_id))
+    except RuntimeError:
+        # 没有事件循环，创建新的
+        return asyncio.run(_encode_task_async(task_id, user_id))
 
 
 async def _encode_task_async(task_id: str, user_id: str) -> str:
@@ -15,77 +42,74 @@ async def _encode_task_async(task_id: str, user_id: str) -> str:
     job = get_current_job()
 
     # 获取数据库会话
-    db_gen = get_db_sync()
-    db = next(db_gen)
-
-    try:
-        from app.services.task_service import TaskService
-        from uuid import UUID
-
-        task = await TaskService.get_by_id(db, UUID(task_id), UUID(user_id))
-        if not task:
-            raise ValueError(f"Task not found: {task_id}")
-
-        # 更新状态为处理中
-        task = await TaskService.update_status(db, task, TaskStatus.PROCESSING)
-        await db.commit()
-
-        # 获取存储和输出路径
-        storage = get_storage()
-        output_path = f"results/{user_id}/{task_id}/output.mp4"
-
-        # 模拟转码（实际应调用 FFmpeg）
-        import time
-        for i in range(0, 101, 10):
-            task = await TaskService.update_progress(db, task, i)
-            await db.commit()
-            time.sleep(0.1)
-
-        # 完成任务
-        task = await TaskService.update_status(db, task, TaskStatus.COMPLETED)
-        await db.commit()
-
-        return f"Task {task_id} completed"
-
-    except Exception as e:
-        # 更新失败状态
-        try:
-            task = await TaskService.get_by_id(db, UUID(task_id), UUID(user_id))
-            if task:
-                await TaskService.update_status(db, task, TaskStatus.FAILED, str(e))
-                await db.commit()
-        except:
-            pass
-        raise
-    finally:
-        db.close()
-
-
-def get_db_sync():
-    """同步上下文的数据库会话（用于 RQ Worker）"""
-    from sqlalchemy import create_engine
+    from sqlalchemy import create_engine, select
     from sqlalchemy.orm import sessionmaker
     from app.core.config import settings
+    from app.models.task import Task, TaskStatus
+    from app.tasks.transcode_worker import TranscodeWorker
+    from uuid import UUID
+    from datetime import datetime
 
-    sync_engine = create_engine(
-        settings.DATABASE_URL.replace("+aiosqlite", "").replace("+asyncpg", ""),
-        echo=settings.APP_ENV == "development",
-    )
+    # 创建同步引擎
+    sync_url = settings.DATABASE_URL
+    for prefix in ["+aiosqlite", "+asyncpg", "+aiomysql"]:
+        sync_url = sync_url.replace(prefix, "")
 
-    SessionLocal = sessionmaker(bind=sync_engine, expire_on_commit=False)
+    engine = create_engine(sync_url, echo=False)
+    Session = sessionmaker(bind=engine, expire_on_commit=False)
 
-    from contextlib import contextmanager
+    session = Session()
+    try:
+        # 获取任务
+        result = session.execute(
+            select(Task).where(Task.id == UUID(task_id))
+        )
+        task = result.scalar_one_or_none()
 
-    @contextmanager
-    def get_session():
-        session = SessionLocal()
+        if not task:
+            raise ValueError(f"任务不存在: {task_id}")
+
+        # 检查任务状态
+        if task.status != TaskStatus.PENDING:
+            raise ValueError(f"任务状态不正确: {task.status}")
+
+        # 更新状态为处理中
+        task.status = TaskStatus.PROCESSING
+        task.started_at = datetime.now(timezone.utc)
+        session.commit()
+
+        # 创建工作器并执行
+        worker = TranscodeWorker(task_id)
+        success = await worker.start(task)
+
+        # 刷新任务状态
+        session.refresh(task)
+
+        if success:
+            logger.info(f"任务 {task_id} 完成")
+            return f"Task {task_id} completed"
+        elif task.status == TaskStatus.CANCELLED:
+            return f"Task {task_id} cancelled"
+        else:
+            return f"Task {task_id} failed"
+
+    except Exception as e:
+        logger.error(f"任务 {task_id} 执行失败: {e}")
+
+        # 更新失败状态
         try:
-            yield session
-            session.commit()
+            result = session.execute(
+                select(Task).where(Task.id == UUID(task_id))
+            )
+            task = result.scalar_one_or_none()
+            if task:
+                task.status = TaskStatus.FAILED
+                task.error_message = str(e)
+                task.completed_at = datetime.now(timezone.utc)
+                session.commit()
         except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
+            pass
 
-    return get_session()
+        raise
+    finally:
+        session.close()

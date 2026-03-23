@@ -62,6 +62,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { hashPassword } from '@/utils/crypto'
+import { success, error as showError } from '@/utils/message'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -93,7 +94,7 @@ const handleSubmit = async () => {
 
 const handleRegister = async () => {
   if (registerForm.value.password !== registerForm.value.confirm) {
-    alert('两次输入的密码不一致')
+    showError('两次输入的密码不一致')
     return
   }
   registering.value = true
@@ -108,16 +109,16 @@ const handleRegister = async () => {
       })
     })
     if (response.ok) {
-      alert('注册成功，请登录')
+      success('注册成功，请登录')
       showRegister.value = false
       form.value.username = registerForm.value.username
       registerForm.value = { username: '', email: '', password: '', confirm: '' }
     } else {
       const data = await response.json()
-      alert('注册失败: ' + (data.detail || '未知错误'))
+      showError('注册失败: ' + (data.detail || '未知错误'))
     }
   } catch (err) {
-    alert('注册失败: ' + err.message)
+    showError('注册失败: ' + err.message)
   } finally {
     registering.value = false
   }

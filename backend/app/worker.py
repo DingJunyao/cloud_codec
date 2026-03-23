@@ -9,7 +9,11 @@ logger = get_logger(__name__)
 
 
 def run_worker():
-    """运行 RQ Worker"""
+    """运行 RQ Worker
+    
+    注意：任务超时时间在 task_service.py 的 enqueue() 中设置 job_timeout 参数。
+    FFmpeg 转码任务设置为 1 年（31536000 秒）以避免被强制终止。
+    """
     redis_url = settings.REDIS_URL
     logger.info(f"Worker starting, connecting to: {redis_url}")
 

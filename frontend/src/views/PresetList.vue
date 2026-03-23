@@ -16,7 +16,13 @@
       </button>
     </div>
 
-    <div class="preset-grid">
+    <div v-if="loading" class="loading">加载中...</div>
+
+    <div v-else-if="filteredPresets.length === 0" class="empty">
+      <p>{{ activeTab === 'system' ? '暂无系统预设' : '暂无个人预设' }}</p>
+    </div>
+
+    <div v-else class="preset-grid">
       <div
         v-for="preset in filteredPresets"
         :key="preset.id"
@@ -24,61 +30,149 @@
       >
         <div class="preset-header">
           <h3>{{ preset.name }}</h3>
-          <button
-            v-if="!preset.is_system"
-            @click="handleDelete(preset.id)"
-            class="btn-delete"
-          >
-            删除
-          </button>
+          <div class="preset-actions">
+            <button
+              @click="handleClone(preset)"
+              class="btn-clone"
+            >
+              克隆
+            </button>
+            <button
+              v-if="!preset.is_builtin"
+              @click="handleDelete(preset.id)"
+              class="btn-delete"
+            >
+              删除
+            </button>
+          </div>
         </div>
+        <p class="preset-desc">{{ preset.description || '无描述' }}</p>
         <div class="preset-details">
-          <p><strong>视频:</strong> {{ preset.video_codec || '继承' }} | {{ preset.video_bitrate || '继承' }}</p>
-          <p><strong>音频:</strong> {{ preset.audio_codec || '继承' }} | {{ preset.audio_bitrate || '继承' }}</p>
-          <p v-if="preset.video_resolution"><strong>分辨率:</strong> {{ preset.video_resolution }}</p>
-          <p v-if="preset.fps"><strong>帧率:</strong> {{ preset.fps }} fps</p>
+          <el-tag size="small">
+            {{ preset.config?.video?.codec?.toUpperCase() || 'H.264' }}
+          </el-tag>
+          <el-tag size="small" type="info">
+            {{ preset.config?.audio?.codec?.toUpperCase() || 'AAC' }}
+          </el-tag>
+          <el-tag size="small" type="success">
+            {{ preset.config?.container?.toUpperCase() || 'MP4' }}
+          </el-tag>
         </div>
+        <div class="preset-config">
+          <span v-if="preset.config?.video?.resolution?.height">
+            分辨率: {{ preset.config.video.resolution.height }}p
+          </span>
+          <span v-if="preset.config?.video?.codec_options?.preset">
+            预设: {{ preset.config.video.codec_options.preset }}
+          </span>
+          <span v-if="preset.config?.video?.codec_options?.crf">
+            CRF: {{ preset.config.video.codec_options.crf }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 克隆预设对话框 -->
+    <div v-if="showCloneDialog" class="dialog-overlay" @click.self="showCloneDialog = false">
+      <div class="dialog">
+        <h2>克隆预设</h2>
+        <form @submit.prevent="confirmClone" class="form">
+          <div class="field">
+            <label>新预设名称</label>
+            <input v-model="cloneForm.name" :placeholder="cloneForm.defaultName" />
+          </div>
+          <div class="actions">
+            <button type="button" @click="showCloneDialog = false">取消</button>
+            <button type="submit" :disabled="cloning">
+              {{ cloning ? '处理中...' : '确认克隆' }}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 
     <!-- 创建预设对话框 -->
     <div v-if="showCreateDialog" class="dialog-overlay" @click.self="showCreateDialog = false">
-      <div class="dialog">
+      <div class="dialog dialog-large">
         <h2>新建预设</h2>
         <form @submit.prevent="handleCreate" class="form">
           <div class="field">
-            <label>名称</label>
+            <label>名称 *</label>
             <input v-model="newPreset.name" required />
           </div>
           <div class="field">
-            <label>视频编码</label>
-            <select v-model="newPreset.video_codec">
-              <option value="">继承</option>
-              <option value="libx264">H.264</option>
-              <option value="libx265">H.265</option>
-              <option value="libvpx-vp9">VP9</option>
+            <label>描述</label>
+            <textarea v-model="newPreset.description" rows="2"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label>视频编码</label>
+              <select v-model="newPreset.config.video.codec">
+                <option value="h264">H.264</option>
+                <option value="h265">H.265 (HEVC)</option>
+                <option value="vp9">VP9</option>
+                <option value="av1">AV1</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>编码预设</label>
+              <select v-model="newPreset.config.video.codec_options.preset">
+                <option value="ultrafast">ultrafast</option>
+                <option value="superfast">superfast</option>
+                <option value="veryfast">veryfast</option>
+                <option value="faster">faster</option>
+                <option value="fast">fast</option>
+                <option value="medium">medium</option>
+                <option value="slow">slow</option>
+                <option value="slower">slower</option>
+                <option value="veryslow">veryslow</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label>CRF 质量</label>
+              <input type="number" v-model.number="newPreset.config.video.codec_options.crf" min="0" max="51" />
+            </div>
+            <div class="field">
+              <label>分辨率高度</label>
+              <input type="number" v-model.number="newPreset.config.video.resolution.height" placeholder="自动" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label>音频编码</label>
+              <select v-model="newPreset.config.audio.codec">
+                <option value="aac">AAC</option>
+                <option value="mp3">MP3</option>
+                <option value="opus">Opus</option>
+                <option value="ac3">AC3</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>音频码率</label>
+              <select v-model="newPreset.config.audio.bitrate">
+                <option value="64k">64k</option>
+                <option value="96k">96k</option>
+                <option value="128k">128k</option>
+                <option value="192k">192k</option>
+                <option value="256k">256k</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>容器格式</label>
+            <select v-model="newPreset.config.container">
+              <option value="mp4">MP4</option>
+              <option value="mkv">MKV</option>
+              <option value="webm">WebM</option>
             </select>
-          </div>
-          <div class="field">
-            <label>视频比特率</label>
-            <input v-model="newPreset.video_bitrate" placeholder="如: 2M" />
-          </div>
-          <div class="field">
-            <label>音频编码</label>
-            <select v-model="newPreset.audio_codec">
-              <option value="">继承</option>
-              <option value="aac">AAC</option>
-              <option value="libmp3lame">MP3</option>
-              <option value="libopus">Opus</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>音频比特率</label>
-            <input v-model="newPreset.audio_bitrate" placeholder="如: 128k" />
           </div>
           <div class="actions">
             <button type="button" @click="showCreateDialog = false">取消</button>
-            <button type="submit">创建</button>
+            <button type="submit" :disabled="creating">
+              {{ creating ? '创建中...' : '创建' }}
+            </button>
           </div>
         </form>
       </div>
@@ -86,77 +180,120 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+<script setup lang="ts">
+import { ref, computed, onMounted, reactive } from 'vue'
+import presetsApi from '@/api/presets'
+import type { Preset, EncodeConfig } from '@/api/presets'
+import { error, confirm } from '@/utils/message'
 
-const authStore = useAuthStore()
-const presets = ref([])
+const presets = ref<Preset[]>([])
 const activeTab = ref('user')
+const loading = ref(false)
 const showCreateDialog = ref(false)
+const showCloneDialog = ref(false)
+const creating = ref(false)
+const cloning = ref(false)
 
-const newPreset = ref({
+const cloneForm = reactive({
+  sourceId: '',
   name: '',
-  video_codec: '',
-  video_bitrate: '',
-  audio_codec: '',
-  audio_bitrate: ''
+  defaultName: ''
+})
+
+const defaultConfig: EncodeConfig = {
+  video: {
+    codec: 'h264',
+    codec_options: { preset: 'medium', crf: 23 },
+    resolution: { mode: 'auto', keep_aspect: true },
+    hw_accel: 'auto'
+  },
+  audio: {
+    codec: 'aac',
+    bitrate: '128k',
+    channels: 2,
+    sample_rate: 48000
+  },
+  container: 'mp4',
+  filters: []
+}
+
+const newPreset = reactive({
+  name: '',
+  description: '',
+  config: JSON.parse(JSON.stringify(defaultConfig))
 })
 
 const filteredPresets = computed(() => {
   return presets.value.filter(p =>
-    activeTab.value === 'system' ? p.is_system : !p.is_system
+    activeTab.value === 'system' ? p.is_builtin : !p.is_builtin
   )
 })
 
+const fetchPresets = async () => {
+  loading.value = true
+  try {
+    presets.value = await presetsApi.list()
+  } catch (err) {
+    console.error('加载预设失败:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
 const handleCreate = async () => {
+  creating.value = true
   try {
-    const response = await fetch('/api/presets/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.accessToken}`
-      },
-      body: JSON.stringify(newPreset.value)
+    const preset = await presetsApi.create({
+      name: newPreset.name,
+      description: newPreset.description,
+      config: newPreset.config
     })
-    if (response.ok) {
-      const preset = await response.json()
-      presets.value.push(preset)
-      showCreateDialog.value = false
-      newPreset.value = { name: '', video_codec: '', video_bitrate: '', audio_codec: '', audio_bitrate: '' }
-    }
-  } catch (error) {
-    alert('创建失败: ' + error.message)
+    presets.value.push(preset)
+    showCreateDialog.value = false
+    // 重置表单
+    newPreset.name = ''
+    newPreset.description = ''
+    newPreset.config = JSON.parse(JSON.stringify(defaultConfig))
+  } catch (err: any) {
+    error('创建失败: ' + err.message)
+  } finally {
+    creating.value = false
   }
 }
 
-const handleDelete = async (id) => {
-  if (!confirm('确定要删除此预设吗？')) return
+const handleClone = (preset: Preset) => {
+  cloneForm.sourceId = preset.id
+  cloneForm.defaultName = `${preset.name} (副本)`
+  cloneForm.name = ''
+  showCloneDialog.value = true
+}
+
+const confirmClone = async () => {
+  cloning.value = true
   try {
-    await fetch(`/api/presets/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${authStore.accessToken}`
-      }
+    const cloned = await presetsApi.clone(cloneForm.sourceId, {
+      name: cloneForm.name || undefined
     })
+    presets.value.push(cloned)
+    showCloneDialog.value = false
+  } catch (err: any) {
+    error('克隆失败: ' + err.message)
+  } finally {
+    cloning.value = false
+  }
+}
+
+const handleDelete = async (id: string) => {
+  if (!await confirm('确定要删除此预设吗？')) return
+  try {
+    await presetsApi.delete(id)
     presets.value = presets.value.filter(p => p.id !== id)
-  } catch (error) {
-    alert('删除失败: ' + error.message)
+  } catch (err: any) {
+    error('删除失败: ' + err.message)
   }
 }
 
-onMounted(async () => {
-  try {
-    const response = await fetch('/api/presets/', {
-      headers: {
-        'Authorization': `Bearer ${authStore.accessToken}`
-      }
-    })
-    presets.value = await response.json()
-  } catch (error) {
-    console.error('加载预设失败:', error)
-  }
-})
+onMounted(fetchPresets)
 </script>
 
 <style scoped>
@@ -193,6 +330,12 @@ onMounted(async () => {
   color: #1890ff;
 }
 
+.loading, .empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
 .preset-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -208,12 +351,32 @@ onMounted(async () => {
 .preset-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.preset-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.preset-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-clone {
+  padding: 4px 12px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
 }
 
 .btn-delete {
-  padding: 6px 12px;
+  padding: 4px 12px;
   background: #ff4d4f;
   color: white;
   border: none;
@@ -222,10 +385,23 @@ onMounted(async () => {
   font-size: 12px;
 }
 
-.preset-details p {
-  margin: 4px 0;
-  font-size: 14px;
+.preset-desc {
+  font-size: 13px;
   color: #666;
+  margin-bottom: 12px;
+}
+
+.preset-details {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.preset-config {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #999;
 }
 
 .btn-primary {
@@ -256,11 +432,27 @@ onMounted(async () => {
   border-radius: 8px;
   width: 90%;
   max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.dialog-large {
+  max-width: 600px;
+}
+
+.dialog h2 {
+  margin-bottom: 20px;
 }
 
 .form {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
@@ -276,7 +468,8 @@ onMounted(async () => {
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;

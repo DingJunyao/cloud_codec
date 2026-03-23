@@ -143,3 +143,23 @@ from app.models.permission import group_permissions
 1. Redis 是否运行：`redis-cli ping`
 2. RQ worker 是否启动：`rq worker app.tasks.encode --url redis://localhost:6379/0`
 3. 检查 worker 日志是否有错误
+
+## 文件上传进度与后端不同步
+
+**症状**: 前端上传进度条到 100% 后，后端才开始处理文件。
+
+**原因**: Nginx 默认会缓冲请求体，收到完整数据后才转发给后端。通过内网穿透（nps 等）+ Nginx Proxy Manager 反代时常见此问题。
+
+**解决**: 在 Nginx Proxy Manager 中禁用请求缓冲：
+
+1. 进入 NPM 管理界面
+2. 找到后端 API 的代理主机配置
+3. 点击 **Advanced** 标签
+4. 添加以下配置：
+
+```nginx
+proxy_request_buffering off;
+proxy_buffering off;
+```
+
+**注意**: 不要添加 `proxy_http_version 1.1;`，可能导致 SSL 错误。

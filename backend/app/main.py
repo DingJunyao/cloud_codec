@@ -6,15 +6,21 @@ from app.core.config import settings
 from app.core.logging import setup_logging
 from app.middleware import RequestLoggingMiddleware, TimingMiddleware
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
 
 setup_logging()
 
+# Redis 订阅器任务
+_redis_subscriber_task: asyncio.Task = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
+    global _redis_subscriber_task
+
     logger.info(f"Starting {settings.APP_NAME}...")
     logger.info(f"Environment: {settings.APP_ENV}")
 
@@ -23,7 +29,35 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database initialized")
 
+    # 初始化系统预设
+    from app.services.preset_init import init_system_presets
+    from app.database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        await init_system_presets(db)
+
+    logger.info("System presets initialized")
+
+    # 初始化硬件加速检测
+    from app.services.hw_accel import get_hw_accel_service
+    hw_service = get_hw_accel_service()
+    hw_status = hw_service.get_status()
+    logger.info(f"Hardware acceleration: {hw_status}")
+
+    # 启动 Redis 订阅器（用于接收 RQ worker 的进度消息）
+    from app.tasks.websocket import redis_subscriber
+    _redis_subscriber_task = asyncio.create_task(redis_subscriber())
+    logger.info("Redis subscriber started")
+
     yield
+
+    # 关闭 Redis 订阅器
+    if _redis_subscriber_task:
+        _redis_subscriber_task.cancel()
+        try:
+            await _redis_subscriber_task
+        except asyncio.CancelledError:
+            pass
+
     logger.info(f"Shutting down {settings.APP_NAME}...")
 
 

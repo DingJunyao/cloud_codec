@@ -24,3 +24,46 @@ body {
 
 .el-main { padding: 20px; }
 .el-card { border-radius: 8px; }
+
+/* 移动端对话框优化 */
+.mobile-confirm-dialog,
+.mobile-prompt-dialog {
+  max-width: 90vw !important;
+  width: 340px !important;
+}
+
+/* Element Plus 消息框移动端适配 */
+.el-message-box {
+  @media (max-width: 480px) {
+    width: 90vw !important;
+    max-width: 340px !important;
+  }
+}
+
+/* Element Plus 消息提示移动端适配 */
+.el-message {
+  @media (max-width: 480px) {
+    min-width: auto !important;
+    width: 90vw !important;
+    max-width: 340px !important;
+  }
+}
+
+/* 移动端输入框优化 - 防止自动放大 */
+input,
+textarea,
+select {
+  font-size: 16px !important; /* iOS 需要 16px 以上才不会自动放大 */
+}
+
+/* 移动端表格优化 */
+@media (max-width: 768px) {
+  .el-table {
+    font-size: 14px;
+  }
+
+  .el-table th,
+  .el-table td {
+    padding: 8px 4px;
+  }
+}

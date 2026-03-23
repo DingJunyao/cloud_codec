@@ -20,19 +20,27 @@ async def upload_file(
         return {"error": "只支持视频文件"}
 
     # 创建用户目录
-    upload_dir = Path(settings.storage_dir) / "uploads" / str(current_user.id)
+    upload_dir = settings.STORAGE_PATH / "uploads" / str(current_user.id)
     upload_dir.mkdir(parents=True, exist_ok=True)
 
-    # 生成唯一文件名
-    file_ext = Path(file.filename).suffix
-    filename = f"{uuid.uuid4()}{file_ext}"
-    file_path = upload_dir / filename
+    # 生成唯一文件名（存储用）
+    file_ext = Path(file.filename).suffix if file.filename else ".mp4"
+    storage_filename = f"{uuid.uuid4()}{file_ext}"
+    file_path = upload_dir / storage_filename
 
-    # 保存文件
+    # 流式保存文件（避免内存中缓冲整个文件）
+    chunk_size = 1024 * 1024  # 1MB chunks
     with open(file_path, "wb") as f:
-        content = await file.read()
-        f.write(content)
+        while chunk := await file.read(chunk_size):
+            f.write(chunk)
 
-    # 返回相对路径
-    relative_path = file_path.relative_to(settings.storage_dir)
-    return {"file_path": str(relative_path), "filename": filename}
+    # 提取原始文件名（不含扩展名）
+    original_name = Path(file.filename).stem if file.filename else "video"
+
+    # 返回相对路径和原始文件名
+    relative_path = file_path.relative_to(settings.STORAGE_PATH)
+    return {
+        "file_path": str(relative_path),
+        "filename": storage_filename,
+        "original_name": original_name  # 原始文件名（不含扩展名）
+    }

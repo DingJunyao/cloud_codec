@@ -8,6 +8,13 @@ import App from './App.vue'
 import router from './router'
 import './styles/main.scss'
 
+// 移动端调试工具（通过环境变量控制启用）
+if (import.meta.env.VITE_ENABLE_ERUDA === 'true') {
+  import('eruda').then((eruda) => {
+    eruda.default.init()
+  })
+}
+
 const app = createApp(App)
 const pinia = createPinia()
 

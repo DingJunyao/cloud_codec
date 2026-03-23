@@ -29,6 +29,6 @@ async def init_db():
     """初始化数据库"""
     async with engine.begin() as conn:
         # 导入所有模型以确保它们被注册到 Base.metadata
-        from app.models import user, group, permission, task, preset  # noqa
+        from app.models import user, group, permission, task, preset, task_log  # noqa
         from app.models.base import Base
         await conn.run_sync(Base.metadata.create_all)
