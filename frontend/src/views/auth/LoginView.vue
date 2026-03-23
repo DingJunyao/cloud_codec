@@ -3,7 +3,7 @@
     <div class="login-container">
       <div class="login-header">
         <h1>码上转</h1>
-        <p>CloudCoder - 视频转码服务</p>
+        <p>CloudCodec - 视频转码服务</p>
       </div>
 
       <el-card class="login-card">

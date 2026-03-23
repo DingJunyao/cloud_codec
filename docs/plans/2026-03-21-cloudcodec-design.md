@@ -1,4 +1,4 @@
-# 码上转 (CloudCoder) - 系统设计文档
+# 码上转 (CloudCodec) - 系统设计文档
 
 > 创建日期：2026-03-21
 
@@ -6,7 +6,7 @@
 
 ### 1.1 项目简介
 
-码上转（CloudCoder）是一个基于 Web 的视频转码服务平台，提供视频上传、转码配置、实时进度监控和结果下载等功能。系统支持多用户管理、批量转码、硬件加速编解码，并提供了完整的权限管理体系。
+码上转（CloudCodec）是一个基于 Web 的视频转码服务平台，提供视频上传、转码配置、实时进度监控和结果下载等功能。系统支持多用户管理、批量转码、硬件加速编解码，并提供了完整的权限管理体系。
 
 ### 1.2 核心功能
 
@@ -945,7 +945,7 @@ services:
     volumes:
       - ./data:/app/data
     environment:
-      - DATABASE_URL=postgresql://user:pass@db:5432/cloudcoder
+      - DATABASE_URL=postgresql://user:pass@db:5432/cloudcodec
       - REDIS_URL=redis://redis:6379
     depends_on:
       - redis
@@ -957,7 +957,7 @@ services:
     volumes:
       - ./data:/app/data
     environment:
-      - DATABASE_URL=postgresql://user:pass@db:5432/cloudcoder
+      - DATABASE_URL=postgresql://user:pass@db:5432/cloudcodec
       - REDIS_URL=redis://redis:6379
     depends_on:
       - redis
@@ -983,7 +983,7 @@ services:
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=pass
-      - POSTGRES_DB=cloudcoder
+      - POSTGRES_DB=cloudcodec
 
 volumes:
   redis_data:
@@ -1001,9 +1001,9 @@ APP_SECRET=your-secret-key
 APP_URL=https://your-domain.com
 
 # 数据库配置
-DATABASE_URL=sqlite:///./data/cloudcoder.db
-# DATABASE_URL=postgresql://user:pass@localhost:5432/cloudcoder
-# DATABASE_URL=mysql+pymysql://user:pass@localhost:3306/cloudcoder
+DATABASE_URL=sqlite:///./data/cloudcodec.db
+# DATABASE_URL=postgresql://user:pass@localhost:5432/cloudcodec
+# DATABASE_URL=mysql+pymysql://user:pass@localhost:3306/cloudcodec
 
 # Redis 配置
 REDIS_URL=redis://localhost:6379/0
@@ -1014,7 +1014,7 @@ STORAGE_PATH=/data
 
 # S3 配置（如使用）
 # S3_ENDPOINT=https://s3.example.com
-# S3_BUCKET=cloudcoder
+# S3_BUCKET=cloudcodec
 # S3_ACCESS_KEY=xxx
 # S3_SECRET_KEY=xxx
 

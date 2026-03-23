@@ -10,9 +10,9 @@ APP_SECRET=your-secret-key-min-32-chars-change-in-production
 JWT_SECRET=your-jwt-secret-key-min-32-chars-change-in-production
 
 # 数据库
-DATABASE_URL=sqlite+aiosqlite:///./data/cloudcoder.db
+DATABASE_URL=sqlite+aiosqlite:///./data/cloudcodec.db
 # 生产环境可使用 PostgreSQL:
-# DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/cloudcoder
+# DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/cloudcodec
 
 # Redis（任务队列）
 REDIS_URL=redis://localhost:6379/0

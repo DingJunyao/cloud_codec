@@ -32,7 +32,7 @@ class Settings(BaseSettings):
         return v.rstrip("/")
 
     # 数据库配置
-    DATABASE_URL: str = "sqlite+aiosqlite:///./data/cloudcoder.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./data/cloudcodec.db"
 
     @field_validator("DATABASE_URL")
     @classmethod

@@ -52,7 +52,7 @@ npm run dev
 
 ### 数据库
 
-数据库：`backend/.env` 文件中指定。一般情况下为 `backend/data/cloudcoder.db`。
+数据库：`backend/.env` 文件中指定。一般情况下为 `backend/data/cloudcodec.db`。
 
 数据库操作优先使用相应的 MCP。
 
@@ -108,7 +108,7 @@ npm run dev
 ```bash
 APP_SECRET=min-32-chars-secret
 JWT_SECRET=min-32-chars-secret
-DATABASE_URL=sqlite+aiosqlite:///./data/cloudcoder.db
+DATABASE_URL=sqlite+aiosqlite:///./data/cloudcodec.db
 ```
 
 ### Async/Await

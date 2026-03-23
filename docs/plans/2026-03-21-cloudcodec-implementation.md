@@ -1,4 +1,4 @@
-# CloudCoder (码上转) MVP 实现计划
+# CloudCodec (码上转) MVP 实现计划
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
@@ -157,9 +157,9 @@ APP_SECRET=change-me-in-production-min-32-chars
 APP_URL=http://localhost:8000
 
 # 数据库配置
-DATABASE_URL=sqlite+aiosqlite:///./data/cloudcoder.db
-# DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/cloudcoder
-# DATABASE_URL=mysql+aiomysql://user:pass@localhost:3306/cloudcoder
+DATABASE_URL=sqlite+aiosqlite:///./data/cloudcodec.db
+# DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/cloudcodec
+# DATABASE_URL=mysql+aiomysql://user:pass@localhost:3306/cloudcodec
 
 # Redis 配置
 REDIS_URL=redis://localhost:6379/0
@@ -308,7 +308,7 @@ else:
 **Step 6: 创建 app/__init__.py**
 
 ```python
-"""CloudCoder Application"""
+"""CloudCodec Application"""
 
 __version__ = "0.1.0"
 ```
@@ -331,9 +331,9 @@ setup_logging()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
-    logger.info("Starting CloudCoder...")
+    logger.info("Starting CloudCodec...")
     yield
-    logger.info("Shutting down CloudCoder...")
+    logger.info("Shutting down CloudCodec...")
 
 
 app = FastAPI(
@@ -400,7 +400,7 @@ class Settings(BaseSettings):
     APP_URL: str = "http://localhost:8000"
 
     # 数据库配置
-    DATABASE_URL: str = "sqlite+aiosqlite:///./data/cloudcoder.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./data/cloudcodec.db"
 
     # Redis 配置
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -948,7 +948,7 @@ ls -la data/
 
 预期输出包含：
 ```
-cloudcoder.db
+cloudcodec.db
 ```
 
 **Step 9: 创建数据库初始化脚本**
@@ -1120,7 +1120,7 @@ class Settings(BaseSettings):
         return v.rstrip("/")
 
     # 数据库配置
-    DATABASE_URL: str = "sqlite+aiosqlite:///./data/cloudcoder.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./data/cloudcodec.db"
 
     @validator("DATABASE_URL")
     def validate_database_url(cls, v):
@@ -1631,7 +1631,7 @@ export default defineConfig(({ mode }) => {
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>码上转 - CloudCoder</title>
+    <title>码上转 - CloudCodec</title>
   </head>
   <body>
     <div id="app"></div>
@@ -2957,7 +2957,7 @@ async function handleLogout() {
     <div class="login-container">
       <div class="login-header">
         <h1>码上转</h1>
-        <p>CloudCoder - 视频转码服务</p>
+        <p>CloudCodec - 视频转码服务</p>
       </div>
 
       <el-card class="login-card">
@@ -3123,7 +3123,7 @@ async function handleLogin() {
     <div class="register-container">
       <div class="register-header">
         <h1>注册账号</h1>
-        <p>创建您的 CloudCoder 账号</p>
+        <p>创建您的 CloudCodec 账号</p>
       </div>
 
       <el-card class="register-card">
@@ -6445,7 +6445,7 @@ function handleClose() {
       </template>
 
       <div class="about-info">
-        <p><strong>应用名称：</strong> 码上转 (CloudCoder)</p>
+        <p><strong>应用名称：</strong> 码上转 (CloudCodec)</p>
         <p><strong>版本：</strong> 0.1.0</p>
         <p><strong>说明：</strong> 基于 Web 的视频转码服务平台</p>
       </div>
@@ -7773,7 +7773,7 @@ git commit -m "feat: add admin dashboard and user management
 
 ## 执行说明
 
-**计划已保存至** `docs/plans/2026-03-21-cloudcoder-implementation.md`。
+**计划已保存至** `docs/plans/2026-03-21-cloudcodec-implementation.md`。
 
 ### 🎉 完整计划完成（23/23 任务）
 

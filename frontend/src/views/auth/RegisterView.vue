@@ -3,7 +3,7 @@
     <div class="register-container">
       <div class="register-header">
         <h1>注册账号</h1>
-        <p>创建您的 CloudCoder 账号</p>
+        <p>创建您的 CloudCodec 账号</p>
       </div>
 
       <el-card class="register-card">

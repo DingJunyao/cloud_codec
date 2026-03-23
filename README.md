@@ -1,4 +1,4 @@
-# CloudCoder (码上转)
+# CloudCodec (码上转)
 
 一个现代化的视频转码服务平台，支持自定义转码预设、实时进度跟踪和 WebSocket 通信。
 
@@ -114,7 +114,7 @@ APP_SECRET=your-secret-key-min-32-chars
 APP_URL=http://localhost:8000
 
 # 数据库 (支持 SQLite / PostgreSQL / MySQL)
-DATABASE_URL=sqlite+aiosqlite:///./data/cloudcoder.db
+DATABASE_URL=sqlite+aiosqlite:///./data/cloudcodec.db
 
 # Redis
 REDIS_URL=redis://localhost:6379/0
@@ -136,7 +136,7 @@ HW_ACCEL_PRIORITY=nvenc,qsv,vaapi,videotoolbox,amf
 
 ```bash
 VITE_API_BASE_URL=http://localhost:8000/api/v1
-VITE_APP_TITLE=CloudCoder - 视频转码服务
+VITE_APP_TITLE=CloudCodec - 视频转码服务
 ```
 
 ## 项目结构

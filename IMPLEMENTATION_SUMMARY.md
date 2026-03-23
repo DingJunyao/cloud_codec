@@ -1,7 +1,7 @@
-# CloudCoder 实现完成总结
+# CloudCodec 实现完成总结
 
 ## 项目概述
-CloudCoder 是一个基于 FastAPI + Vue 3 的视频转码服务平台，支持用户自定义转码预设、实时进度跟踪和 WebSocket 通信。
+CloudCodec 是一个基于 FastAPI + Vue 3 的视频转码服务平台，支持用户自定义转码预设、实时进度跟踪和 WebSocket 通信。
 
 ## 已完成的任务 (23/23)
 
@@ -90,7 +90,7 @@ cloud_coder/
 │
 └── docs/
     └── plans/
-        └── 2026-03-21-cloudcoder-design.md
+        └── 2026-03-21-cloudcodec-design.md
 ```
 
 ## 快速启动
@@ -137,7 +137,7 @@ VITE_WS_BASE_URL=ws://localhost:8000
 
 **后端 (.env)**
 ```
-DATABASE_URL=sqlite+aiosqlite:///./data/cloudcoder.db
+DATABASE_URL=sqlite+aiosqlite:///./data/cloudcodec.db
 JWT_SECRET=your-secret-key-min-32-chars
 ```
 

@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <div class="login-container">
-      <h1>CloudCoder</h1>
+      <h1>CloudCodec</h1>
       <p class="subtitle">视频转码服务平台</p>
 
       <form @submit.prevent="handleSubmit" class="login-form">
