@@ -3,20 +3,18 @@
     <h1>任务监控</h1>
 
     <div class="toolbar">
-      <select v-model="statusFilter">
-        <option value="">全部状态</option>
-        <option value="pending">等待中</option>
-        <option value="processing">处理中</option>
-        <option value="completed">已完成</option>
-        <option value="failed">失败</option>
-        <option value="cancelled">已取消</option>
-      </select>
-      <select v-model="userFilter">
-        <option value="">全部用户</option>
-        <option v-for="user in users" :key="user.id" :value="user.id">
-          {{ user.username }}
-        </option>
-      </select>
+      <el-select v-model="statusFilter" placeholder="全部状态" clearable style="width: 150px">
+        <el-option value="" label="全部状态" />
+        <el-option value="pending" label="等待中" />
+        <el-option value="processing" label="处理中" />
+        <el-option value="completed" label="已完成" />
+        <el-option value="failed" label="失败" />
+        <el-option value="cancelled" label="已取消" />
+      </el-select>
+      <el-select v-model="userFilter" placeholder="全部用户" clearable style="width: 150px">
+        <el-option value="" label="全部用户" />
+        <el-option v-for="user in users" :key="user.id" :value="user.id" :label="user.username" />
+      </el-select>
     </div>
 
     <div v-if="loading" class="loading">加载中...</div>
@@ -50,24 +48,23 @@
             </td>
             <td>{{ formatTime(task.created_at) }}</td>
             <td>
-              <button @click="viewTask(task.id)" class="btn">查看</button>
-              <button
-                v-if="task.status === 'processing'"
+              <el-button size="small" @click="viewTask(task.id)">查看</el-button>
+              <el-button
+                v-if="task.status === 'processing' || task.status === 'pending'"
+                size="small"
+                type="warning"
                 @click="cancelTask(task.id)"
-                class="btn btn-danger"
-              >
-                取消
-              </button>
+              >取消</el-button>
             </td>
           </tr>
         </tbody>
       </table>
-    </div>
 
-    <div class="pagination">
-      <button @click="prevPage" :disabled="page === 1">上一页</button>
-      <span>第 {{ page }} 页， 共 {{ total }} 条</span>
-      <button @click="nextPage" :disabled="tasks.length < pageSize">下一页</button>
+      <div class="pagination">
+        <el-button size="small" @click="prevPage" :disabled="page === 1">上一页</el-button>
+        <span class="page-info">第 {{ page }} 页，共 {{ total }} 条</span>
+        <el-button size="small" @click="nextPage">下一页</el-button>
+      </div>
     </div>
   </div>
 </template>
@@ -75,19 +72,28 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import request from '@/api/request'
-import type { User } from '@/api/presets'
 import { formatDateTime } from '@/utils/datetime'
 import { success, error, confirm, info } from '@/utils/message'
+import type { User } from '@/api/auth'
 
+interface TaskItem {
+  id: string
+  username?: string
+  source_file: string
+  status: string
+  progress: number
+  created_at: string
+}
+
+const tasks = ref<TaskItem[]>([])
+const users = ref<User[]>([])
+const loading = ref(true)
 const statusFilter = ref('')
 const userFilter = ref('')
 const page = ref(1)
-const pageSize = 10
-const loading = ref(false)
-const tasks = ref<any[]>([])
-const users = ref<User[]>([])
+const pageSize = 20
 const total = ref(0)
-let pollInterval: ReturnType<typeof setInterval> | null = null
+let pollInterval: number | null = null
 
 const statusText = (status: string) => {
   const map: Record<string, string> = {
@@ -105,9 +111,15 @@ const formatTime = (time: string) => formatDateTime(time)
 const fetchTasks = async () => {
   loading.value = true
   try {
-    const params: any = { page: page.value, page_size: pageSize }
-    if (statusFilter.value) params.status = statusFilter.value
-    if (userFilter.value) params.user_id = userFilter.value
+    const params = new URLSearchParams()
+    if (statusFilter.value) {
+      params.append('status', statusFilter.value)
+    }
+    if (userFilter.value) {
+      params.append('user_id', userFilter.value)
+    }
+    params.append('skip', String((page.value - 1) * pageSize))
+    params.append('limit', String(pageSize))
 
     const response = await request.get('/admin/tasks', { params })
     tasks.value = response.items
@@ -176,40 +188,35 @@ onUnmounted(() => {
 
 .task-monitor h1 {
   margin-bottom: 20px;
+  color: var(--color-text-primary);
 }
 
 .toolbar {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
-.toolbar select {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
 .task-table {
-  background: white;
-  border-radius: 8px;
-  overflow-x: auto;
-}
-
-table {
   width: 100%;
   border-collapse: collapse;
+  background: var(--color-bg-card);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-th, td {
-  padding: 12px;
+.task-table th {
+  background: var(--el-fill-color-light);
   text-align: left;
-  border-bottom: 1px solid #eee;
+  padding: 12px;
+  font-weight: 500;
+  color: var(--color-text-primary);
 }
 
-th {
-  background: #f5f5f5;
-  font-weight: 600;
+.task-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--color-border-lighter);
+  color: var(--color-text-regular);
 }
 
 .task-id {
@@ -222,6 +229,7 @@ th {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 13px;
 }
 
 .status {
@@ -230,16 +238,16 @@ th {
   font-size: 12px;
 }
 
-.status.pending { background: #f0f0f0; }
-.status.processing { background: #e6f7ff; color: #1890ff; }
-.status.completed { background: #f6ffed; color: #52c41a; }
-.status.failed { background: #fff1f0; color: #ff4d4f; }
-.status.cancelled { background: #f5f5f5; color: #999; }
+.status.pending { background: var(--el-fill-color-light); color: var(--color-text-secondary); }
+.status.processing { background: rgba(24, 144, 255, 0.15); color: #1890ff; }
+.status.completed { background: rgba(82, 196, 26, 0.15); color: #52c41a; }
+.status.failed { background: rgba(255, 77, 79, 0.15); color: #ff4d4f; }
+.status.cancelled { background: var(--el-fill-color); color: var(--color-text-secondary); }
 
 .progress-bar {
   width: 100px;
   height: 16px;
-  background: #f0f0f0;
+  background: var(--el-fill-color-light);
   border-radius: 4px;
   position: relative;
 }
@@ -256,47 +264,39 @@ th {
   right: 8px;
   top: 0;
   font-size: 12px;
-  color: #666;
-}
-
-.btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.btn-danger {
-  background: #ff4d4f;
-  color: white;
+  color: var(--color-text-secondary);
 }
 
 .loading {
   text-align: center;
   padding: 60px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .pagination {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 16px;
   margin-top: 20px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--color-border-lighter);
   padding: 10px;
 }
 
-.pagination button {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
+.page-info {
+  color: var(--color-text-secondary);
+  font-size: 14px;
 }
 
-.pagination button:disabled {
-  background: #f5f5f5;
-  cursor: not-allowed;
+html.dark .task-table th {
+  background: var(--el-fill-color);
+}
+
+html.dark .task-table td {
+  border-bottom-color: var(--color-border);
+}
+
+html.dark .progress-bar {
+  background: var(--el-fill-color);
 }
 </style>

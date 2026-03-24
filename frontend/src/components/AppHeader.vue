@@ -42,6 +42,15 @@
                 <el-icon><Tools /></el-icon>
                 管理面板
               </el-dropdown-item>
+              <el-dropdown-item divided>
+                <el-icon><Sunny v-if="themeStore.getActualTheme() === 'light'" /><Moon v-else /></el-icon>
+                <span>主题</span>
+                <el-radio-group v-model="themeMode" size="small" class="theme-switcher" @click.stop>
+                  <el-radio-button value="system">跟随系统</el-radio-button>
+                  <el-radio-button value="light">白天</el-radio-button>
+                  <el-radio-button value="dark">夜间</el-radio-button>
+                </el-radio-group>
+              </el-dropdown-item>
               <el-dropdown-item divided command="logout">
                 <el-icon><SwitchButton /></el-icon>
                 退出登录
@@ -58,6 +67,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore, type ThemeMode } from '@/stores/theme'
 import { ElMessage } from 'element-plus'
 import {
   List,
@@ -66,14 +76,21 @@ import {
   UserFilled,
   Tools,
   SwitchButton,
-  Star
+  Star,
+  Sunny,
+  Moon
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const themeStore = useThemeStore()
 
 const appName = '码上转'
 const user = computed(() => authStore.user)
+const themeMode = computed({
+  get: () => themeStore.mode,
+  set: (value: ThemeMode) => themeStore.setTheme(value)
+})
 
 const handleCommand = (command: string) => {
   switch (command) {
@@ -94,18 +111,18 @@ const handleCommand = (command: string) => {
 
 <style scoped>
 .app-header {
-  background: #fff;
-  border-bottom: 1px solid #e0e0e0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: var(--color-bg-header);
+  border-bottom: 1px solid var(--color-border-light);
+  box-shadow: 0 2px 8px var(--color-shadow);
   position: sticky;
   top: 0;
   z-index: 100;
 }
 
 .header-content {
-  max-width: 1400px;
+  max-width: var(--page-max-width);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--page-padding);
   height: 60px;
   display: flex;
   align-items: center;
@@ -138,14 +155,14 @@ const handleCommand = (command: string) => {
   gap: 6px;
   padding: 8px 16px;
   border-radius: 6px;
-  color: #666;
+  color: var(--color-text-secondary);
   text-decoration: none;
   transition: all 0.2s;
   font-size: 14px;
 }
 
 .nav-link:hover {
-  background: #f5f5f5;
+  background: var(--el-fill-color-light);
   color: #1890ff;
 }
 
@@ -153,6 +170,10 @@ const handleCommand = (command: string) => {
   background: #e6f7ff;
   color: #1890ff;
   font-weight: 500;
+}
+
+html.dark .nav-link.router-link-active {
+  background: rgba(24, 144, 255, 0.15);
 }
 
 .nav-link.admin-link {
@@ -163,9 +184,17 @@ const handleCommand = (command: string) => {
   background: #fff1f0;
 }
 
+html.dark .nav-link.admin-link:hover {
+  background: rgba(255, 77, 79, 0.1);
+}
+
 .nav-link.admin-link.router-link-active {
   background: #fff1f0;
   color: #ff4d4f;
+}
+
+html.dark .nav-link.admin-link.router-link-active {
+  background: rgba(255, 77, 79, 0.15);
 }
 
 .user-menu {
@@ -182,16 +211,26 @@ const handleCommand = (command: string) => {
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.2s;
-  color: #333;
+  color: var(--color-text-regular);
   font-size: 14px;
 }
 
 .user-info:hover {
-  background: #f5f5f5;
+  background: var(--el-fill-color-light);
 }
 
 .admin-badge {
   color: #ff4d4f;
+  font-size: 12px;
+}
+
+/* 主题切换器样式 */
+.theme-switcher {
+  margin-left: 12px;
+}
+
+.theme-switcher :deep(.el-radio-button__inner) {
+  padding: 5px 10px;
   font-size: 12px;
 }
 

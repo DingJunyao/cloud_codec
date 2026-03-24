@@ -273,7 +273,8 @@ onMounted(async () => {
 .header h2 {
   margin: 0;
   font-size: 20px;
-  font-weight: 500;
+    font-weight: 500;
+    color: var(--color-text-primary);
 }
 
 .toolbar {

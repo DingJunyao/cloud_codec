@@ -14,15 +14,15 @@ import AppHeader from '@/components/AppHeader.vue'
 <style scoped>
 .app-layout {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--color-bg-base);
   display: flex;
   flex-direction: column;
 }
 
 .main-content {
   flex: 1;
-  padding: 24px;
-  max-width: 1400px;
+  padding: var(--page-padding);
+  max-width: var(--page-max-width);
   width: 100%;
   margin: 0 auto;
 }

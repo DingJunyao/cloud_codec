@@ -505,15 +505,23 @@ onMounted(async () => {
 
 <style scoped>
 .task-create {
-  max-width: 800px;
+  max-width: var(--page-max-width);
   margin: 0 auto;
   padding: 20px;
+}
+
+.task-create h1 {
+  color: var(--color-text-primary);
 }
 
 .form {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  background: var(--color-bg-card);
+  padding: 24px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-light);
 }
 
 .params-collapse {
@@ -522,7 +530,7 @@ onMounted(async () => {
 
 .file-info {
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-top: 8px;
 }
 
@@ -547,7 +555,91 @@ onMounted(async () => {
   margin-bottom: 16px;
 }
 
+:deep(.el-form-item__label) {
+  color: var(--color-text-regular);
+}
+
 :deep(.el-collapse-item__header) {
   font-weight: 500;
+  color: var(--color-text-primary);
+  background: transparent;
+}
+
+:deep(.el-collapse-item__content) {
+  background: transparent;
+}
+
+/* Element Plus Select 下拉框夜间模式适配 */
+:deep(.el-select) {
+  width: 100%;
+}
+:deep(.el-select .el-input__wrapper) {
+  background-color: var(--color-bg-card);
+  box-shadow: 0 0 0 1px var(--color-border) inset;
+}
+:deep(.el-select .el-input__inner) {
+  color: var(--color-text-primary);
+}
+
+/* Element Plus Input 输入框夜间模式适配 */
+:deep(.el-input__wrapper) {
+  background-color: var(--color-bg-card);
+  box-shadow: 0 0 0 1px var(--color-border) inset;
+}
+:deep(.el-input__inner) {
+  color: var(--color-text-primary);
+}
+
+/* Element Plus Upload 按钮夜间模式适配 */
+:deep(.el-upload) {
+  width: 100%;
+}
+:deep(.el-upload-list__item .el-upload-dragger) {
+  background-color: var(--color-bg-card);
+  border-color: var(--color-border);
+}
+:deep(.el-upload-dragger:hover) {
+  border-color: var(--el-color-primary);
+}
+:deep(.el-upload-list__item .el-upload__text) {
+  color: var(--color-text-regular);
+}
+:deep(.el-upload-list__item .el-icon--upload) {
+  color: var(--color-text-secondary);
+}
+:deep(.el-upload-list__item .el-upload-list__item-status) {
+  color: var(--color-text-secondary);
+}
+
+/* Element Plus 按钮夜间模式适配 */
+:deep(.el-button--default) {
+  background-color: var(--color-bg-card);
+  border-color: var(--color-border);
+  color: var(--color-text-regular);
+}
+:deep(.el-button--default:hover) {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+:deep(.el-progress) {
+  line-height: 1;
+}
+:deep(.el-progress-bar__outer) {
+  background-color: var(--el-fill-color-light);
+}
+:deep(.el-progress-bar__innerText) {
+  color: var(--color-text-primary);
+}
+@media (max-width: 768px) {
+  .task-create {
+    padding: 0;
+  }
+
+    .form {
+        padding: 16px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
 }
 </style>

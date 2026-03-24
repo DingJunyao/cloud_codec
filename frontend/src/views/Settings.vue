@@ -142,20 +142,26 @@ onMounted(async () => {
 <style scoped>
 .settings {
   padding: 20px;
-  max-width: 800px;
+  max-width: var(--page-max-width);
   margin: 0 auto;
+}
+
+.settings h1 {
+  color: var(--color-text-primary);
 }
 
 .settings-section {
   margin-bottom: 40px;
   padding: 24px;
-  border: 1px solid #eee;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
   border-radius: 8px;
 }
 
 .settings-section h2 {
   margin-top: 0;
   margin-bottom: 20px;
+  color: var(--color-text-primary);
 }
 
 .form {
@@ -174,17 +180,20 @@ onMounted(async () => {
 .field label {
   font-size: 14px;
   font-weight: 500;
+  color: var(--color-text-regular);
 }
 
 .field input {
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
 }
 
 .field input:disabled {
-  background: #f5f5f5;
-  color: #999;
+  background: var(--el-fill-color-light);
+  color: var(--color-text-placeholder);
 }
 
 .form button {
@@ -204,7 +213,7 @@ onMounted(async () => {
 
 .section-desc {
   font-size: 13px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-bottom: 16px;
 }
 

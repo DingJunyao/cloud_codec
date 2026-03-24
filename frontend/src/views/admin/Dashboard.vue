@@ -146,6 +146,7 @@ onMounted(fetchStats)
 
 .admin-dashboard h1 {
   margin-bottom: 24px;
+  color: var(--color-text-primary);
 }
 
 .stats-grid {
@@ -156,14 +157,24 @@ onMounted(fetchStats)
 }
 
 .stat-card {
-  background: #f5f7fa;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--color-border-light);
   border-radius: 8px;
   padding: 24px;
   text-align: center;
 }
 
 .stat-card.highlight {
-  background: #e6f7ff;
+  background: rgba(24, 144, 255, 0.1);
+  border-color: rgba(24, 144, 255, 0.2);
+}
+
+html.dark .stat-card {
+  background: var(--color-bg-card);
+}
+
+html.dark .stat-card.highlight {
+  background: rgba(24, 144, 255, 0.15);
 }
 
 .stat-value {
@@ -178,7 +189,7 @@ onMounted(fetchStats)
 
 .stat-label {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-top: 8px;
 }
 
@@ -189,6 +200,7 @@ onMounted(fetchStats)
 .section h2 {
   font-size: 18px;
   margin-bottom: 16px;
+  color: var(--color-text-primary);
 }
 
 .status-bars {
@@ -206,15 +218,19 @@ onMounted(fetchStats)
 .status-label {
   width: 80px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .bar {
   flex: 1;
   height: 24px;
-  background: #f0f0f0;
+  background: var(--el-fill-color-lighter);
   border-radius: 4px;
   overflow: hidden;
+}
+
+html.dark .bar {
+  background: var(--el-fill-color);
 }
 
 .bar-fill {
@@ -233,6 +249,7 @@ onMounted(fetchStats)
   text-align: right;
   font-size: 14px;
   font-weight: 500;
+  color: var(--color-text-primary);
 }
 
 .hw-status {
@@ -249,19 +266,20 @@ onMounted(fetchStats)
 
 .hw-label {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
   text-transform: uppercase;
 }
 
 .hw-value {
   font-size: 16px;
   font-weight: 500;
+  color: var(--color-text-primary);
 }
 
 .loading {
   text-align: center;
   padding: 60px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .management-cards {
@@ -271,7 +289,8 @@ onMounted(fetchStats)
 }
 
 .management-card {
-  background: #f5f7fa;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
   border-radius: 8px;
   padding: 24px;
   text-align: center;
@@ -281,22 +300,35 @@ onMounted(fetchStats)
   cursor: pointer;
 }
 
+.management-card .el-icon {
+  color: var(--el-color-primary);
+}
+
+html.dark .management-card .el-icon {
+  color: var(--el-color-primary);
+}
+
 .management-card:hover {
-  background: #e6f7ff;
+  background: rgba(24, 144, 255, 0.05);
+  border-color: #1890ff;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px var(--color-shadow);
+}
+
+html.dark .management-card:hover {
+  background: rgba(24, 144, 255, 0.1);
 }
 
 .card-title {
   font-size: 16px;
   font-weight: 500;
   margin-top: 12px;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .card-desc {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
   margin-top: 4px;
 }
 </style>

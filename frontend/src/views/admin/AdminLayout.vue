@@ -28,7 +28,8 @@ const router = useRouter()
 
 .sidebar {
   width: 200px;
-  border-right: 1px solid #eee;
+  background: var(--color-bg-card);
+  border-right: 1px solid var(--color-border-light);
   padding: 20px;
 }
 
@@ -39,14 +40,14 @@ const router = useRouter()
 }
 
 .sidebar a {
-  color: #333;
+  color: var(--color-text-regular);
   text-decoration: none;
   padding: 10px;
   border-radius: 4px;
 }
 
 .sidebar a:hover {
-  background: #f5f5f5;
+  background: var(--el-fill-color-light);
 }
 
 .sidebar a.router-link-active {
@@ -54,9 +55,14 @@ const router = useRouter()
   color: #1890ff;
 }
 
+html.dark .sidebar a.router-link-active {
+  background: rgba(24, 144, 255, 0.15);
+}
+
 .content {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
+  background: var(--color-bg-base);
 }
 </style>

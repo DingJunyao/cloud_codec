@@ -1,7 +1,7 @@
 <template>
   <div class="task-detail">
     <div class="header">
-      <button @click="$router.back()" class="back-btn">← 返回</button>
+      <el-button @click="$router.back()" :icon="ArrowLeft" circle />
       <h1>任务详情</h1>
     </div>
 
@@ -38,7 +38,7 @@
             <span :class="wsConnected ? 'connected' : 'disconnected'">
               {{ wsConnected ? '已连接' : '未连接' }}
             </span>
-            <button @click="clearLogs" class="btn-clear">清空</button>
+            <el-button @click="clearLogs" size="small" class="clear-logs-btn">清空</el-button>
           </div>
         </div>
         <div class="log-container" ref="logContainer">
@@ -77,16 +77,48 @@
         </div>
       </div>
 
-      <div v-if="store.currentTask.status === 'processing'" class="actions">
-        <button @click="handleCancel" class="btn-cancel">取消任务</button>
+      <!-- 操作按钮组 -->
+      <div class="actions">
+        <el-button-group>
+          <el-button
+            v-if="store.currentTask.status === 'processing' || store.currentTask.status === 'pending'"
+            @click="handleCancel"
+            type="warning"
+          >
+            <el-icon><VideoPause /></el-icon>
+            取消任务
+          </el-button>
+          <el-button
+            v-if="store.currentTask.status === 'completed'"
+            @click="handleDownload"
+            type="primary"
+            :loading="downloading"
+          >
+            <el-icon><Download /></el-icon>
+            {{ downloading ? '下载中...' : '下载结果' }}
+          </el-button>
+          <el-button
+            v-if="['completed', 'failed', 'cancelled'].includes(store.currentTask.status)"
+            @click="handleRetry(store.currentTask.status === 'completed')"
+            type="warning"
+          >
+            <el-icon><RefreshRight /></el-icon>
+            重试
+          </el-button>
+          <el-button
+            v-if="['completed', 'failed', 'cancelled'].includes(store.currentTask.status)"
+            @click="handleDelete"
+            type="danger"
+          >
+            <el-icon><Delete /></el-icon>
+            删除
+          </el-button>
+        </el-button-group>
       </div>
 
       <div v-if="store.currentTask.output_file" class="output">
         <h3>输出文件</h3>
         <p class="file-path">{{ store.currentTask.output_file }}</p>
-        <button @click="handleDownload" class="download-link" :disabled="downloading">
-          {{ downloading ? '下载中...' : '下载结果' }}
-        </button>
       </div>
     </div>
   </div>
@@ -94,14 +126,16 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useTasksStore } from '@/stores/tasks'
 import tasksApi from '@/api/tasks'
 import type { TaskProgressUpdate } from '@/api/tasks'
 import { formatDateTime, formatTimeOnly, formatDuration, getElapsedTime } from '@/utils/datetime'
 import { error, confirm } from '@/utils/message'
+import { ArrowLeft, VideoPause, Download, RefreshRight, Delete } from '@element-plus/icons-vue'
 
 const route = useRoute()
+const router = useRouter()
 const store = useTasksStore()
 
 const ws = ref<WebSocket | null>(null)
@@ -172,6 +206,35 @@ const handleCancel = async () => {
     addLog('任务已取消', 'error')
   } catch (err: any) {
     error('取消失败: ' + err.message)
+  }
+}
+
+const handleRetry = async (isCompleted: boolean) => {
+  const message = isCompleted
+    ? '此任务已完成，确定要重新转码吗？这将覆盖现有输出文件。'
+    : '确定要重新转码吗？'
+
+  if (!await confirm(message)) return
+
+  try {
+    await tasksApi.retry(route.params.id as string)
+    addLog('任务已重新开始', 'info')
+    // 重新获取任务状态
+    await store.fetchTask(route.params.id as string)
+  } catch (err: any) {
+    error('重试失败: ' + (err.response?.data?.detail || err.message))
+  }
+}
+
+const handleDelete = async () => {
+  if (!await confirm('确定要删除此任务吗？')) return
+
+  try {
+    await tasksApi.remove(route.params.id as string)
+    // 返回任务列表
+    router.push('/tasks')
+  } catch (err: any) {
+    error('删除失败: ' + err.message)
   }
 }
 
@@ -323,7 +386,7 @@ onUnmounted(() => {
 <style scoped>
 .task-detail {
   padding: 20px;
-  max-width: 800px;
+  max-width: var(--page-max-width);
   margin: 0 auto;
 }
 
@@ -334,18 +397,22 @@ onUnmounted(() => {
   margin-bottom: 24px;
 }
 
-.back-btn {
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  color: #666;
+.header h1 {
+  margin: 0;
+  color: var(--color-text-primary);
 }
 
 .loading {
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: var(--color-text-secondary);
+}
+
+.detail-content {
+  background: var(--color-bg-card);
+  border-radius: 8px;
+  padding: 24px;
+  border: 1px solid var(--color-border-light);
 }
 
 .status-section {
@@ -359,11 +426,42 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.status-badge.pending { background: #f0f0f0; }
-.status-badge.processing { background: #e6f7ff; color: #1890ff; }
-.status-badge.completed { background: #f6ffed; color: #52c41a; }
-.status-badge.failed { background: #fff1f0; color: #ff4d4f; }
-.status-badge.cancelled { background: #f5f5f5; color: #999; }
+.status-badge.pending {
+  background: var(--el-fill-color-light);
+  color: var(--color-text-secondary);
+}
+
+.status-badge.processing {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+html.dark .status-badge.processing {
+  background: rgba(24, 144, 255, 0.15);
+}
+
+.status-badge.completed {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+html.dark .status-badge.completed {
+  background: rgba(82, 196, 26, 0.15);
+}
+
+.status-badge.failed {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+
+html.dark .status-badge.failed {
+  background: rgba(255, 77, 79, 0.15);
+}
+
+.status-badge.cancelled {
+  background: var(--el-fill-color);
+  color: var(--color-text-secondary);
+}
 
 .error {
   color: #ff4d4f;
@@ -379,16 +477,16 @@ onUnmounted(() => {
   justify-content: space-between;
   margin-bottom: 8px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .progress-details {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .progress-bar {
   height: 12px;
-  background: #f0f0f0;
+  background: var(--el-fill-color);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -408,13 +506,14 @@ onUnmounted(() => {
 
 .info-item label {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
   text-transform: uppercase;
 }
 
 .info-item p {
   font-size: 16px;
   margin-top: 4px;
+  color: var(--color-text-primary);
 }
 
 .file-path {
@@ -425,57 +524,29 @@ onUnmounted(() => {
 
 .actions {
   margin-bottom: 24px;
-}
-
-.btn-cancel {
-  padding: 10px 20px;
-  background: #ff4d4f;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-cancel:hover {
-  background: #ff7875;
+  display: flex;
+  justify-content: flex-start;
 }
 
 .output {
   padding: 16px;
-  background: #f5f5f5;
+  background: var(--el-fill-color-lighter);
   border-radius: 8px;
 }
 
 .output h3 {
   margin-bottom: 8px;
+  color: var(--color-text-primary);
 }
 
-.download-link {
-  display: inline-block;
-  margin-top: 12px;
-  padding: 8px 16px;
-  background: #1890ff;
-  color: white;
-  text-decoration: none;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.download-link:hover:not(:disabled) {
-  background: #40a9ff;
-}
-
-.download-link:disabled {
-  background: #d9d9d9;
-  cursor: not-allowed;
+.output .file-path {
+  color: var(--color-text-secondary);
 }
 
 /* 日志区域样式 */
 .log-section {
   margin-bottom: 24px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--color-border-light);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -485,14 +556,19 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #fafafa;
-  border-bottom: 1px solid #e8e8e8;
+  background: var(--el-fill-color-lighter);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+html.dark .log-header {
+  background: var(--el-fill-color);
 }
 
 .log-header h3 {
   margin: 0;
   font-size: 14px;
   font-weight: 500;
+  color: var(--color-text-primary);
 }
 
 .log-status {
@@ -509,20 +585,6 @@ onUnmounted(() => {
 .log-status .disconnected {
   color: #ff4d4f;
   font-size: 12px;
-}
-
-.btn-clear {
-  padding: 4px 12px;
-  font-size: 12px;
-  background: #fff;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-clear:hover {
-  color: #1890ff;
-  border-color: #1890ff;
 }
 
 .log-container {
@@ -566,5 +628,43 @@ onUnmounted(() => {
 
 .log-line.info .log-message {
   color: #d4d4d4;
+}
+
+/* 清空日志按钮夜间模式 */
+.clear-logs-btn {
+  background-color: var(--el-fill-color-light);
+  border-color: var(--color-border);
+  color: var(--color-text-regular);
+}
+
+.clear-logs-btn:hover {
+  background-color: var(--el-fill-color);
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+}
+
+@media (max-width: 768px) {
+  .task-detail {
+    padding: 0;
+  }
+
+  .detail-content {
+    padding: 16px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions :deep(.el-button-group) {
+    flex-wrap: wrap;
+  }
+
+  .actions :deep(.el-button) {
+    margin-bottom: 8px;
+  }
 }
 </style>

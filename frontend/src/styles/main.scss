@@ -10,16 +10,491 @@ body {
     'Noto Color Emoji';
 }
 
+// 亮色主题变量
 :root {
+  // Element Plus 主色调
   --el-color-primary: #409eff;
   --el-color-success: #67c23a;
   --el-color-warning: #e6a23c;
   --el-color-danger: #f56c6c;
-  --color-bg-dark: #1a1a1a;
-  --color-bg-card: #2d2d2d;
+
+  // 自定义主题变量 - 亮色模式
+  --color-bg-base: #f5f5f5;
+  --color-bg-card: #ffffff;
+  --color-bg-header: #ffffff;
+  --color-text-primary: #303133;
+  --color-text-regular: #606266;
+  --color-text-secondary: #909399;
+  --color-text-placeholder: #c0c4cc;
+  --color-border: #dcdfe6;
+  --color-border-light: #e4e7ed;
+  --color-border-lighter: #ebeef5;
+  --color-shadow: rgba(0, 0, 0, 0.1);
+
+  // 功能按钮颜色
+  --color-btn-danger: #f56c6c;
+  --color-btn-danger-hover: #f78989;
+  --color-btn-warning: #e6a23c;
+  --color-btn-warning-hover: #ebb563;
+
+  // 页面容器宽度
+  --page-max-width: 1200px;
+  --page-padding: 24px;
+}
+
+// 暗色主题变量
+html.dark {
+  // Element Plus 暗色适配
+  --el-bg-color: #1a1a1a;
+  --el-bg-color-page: #141414;
+  --el-bg-color-overlay: #1d1d1d;
+  --el-text-color-primary: #ffffff;
+  --el-text-color-regular: #e5eaf3;
+  --el-text-color-secondary: #a3a6ad;
+  --el-text-color-placeholder: #6c6e72;
+  --el-border-color: #4c4d4f;
+  --el-border-color-light: #414243;
+  --el-border-color-lighter: #363637;
+  --el-fill-color: #303030;
+  --el-fill-color-light: #262727;
+  --el-fill-color-lighter: #1d1d1d;
+
+  // 自定义主题变量 - 暗色模式
+  --color-bg-base: #141414;
+  --color-bg-card: #1d1d1d;
+  --color-bg-header: #1a1a1a;
   --color-text-primary: #ffffff;
-  --color-text-secondary: #b0b0b0;
-  --color-border: #404040;
+  --color-text-regular: #e5eaf3;
+  --color-text-secondary: #a3a6ad;
+  --color-text-placeholder: #6c6e72;
+  --color-border: #4c4d4f;
+  --color-border-light: #414243;
+  --color-border-lighter: #363637;
+  --color-shadow: rgba(0, 0, 0, 0.4);
+
+  // 功能按钮颜色（暗色模式下稍亮）
+  --color-btn-danger: #f56c6c;
+  --color-btn-danger-hover: #f78989;
+  --color-btn-warning: #e6a23c;
+  --color-btn-warning-hover: #ebb563;
+}
+
+// 暗色模式下 Element Plus 组件背景适配
+html.dark {
+  .el-card {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border);
+  }
+
+  .el-dropdown-menu {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border);
+  }
+
+  .el-dropdown-menu__item {
+    color: var(--color-text-regular);
+
+    &:hover {
+      background-color: var(--el-fill-color-light);
+    }
+  }
+
+  .el-button--default {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border);
+    color: var(--color-text-regular);
+  }
+
+  .el-input__wrapper {
+    background-color: var(--color-bg-card);
+    box-shadow: 0 0 0 1px var(--color-border) inset;
+  }
+
+  .el-select-dropdown {
+    background-color: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+  }
+
+  .el-select-dropdown__item {
+    color: var(--color-text-regular);
+
+    &.hover, &:hover {
+      background-color: var(--el-fill-color-light);
+    }
+
+    &.selected {
+      color: var(--el-color-primary);
+    }
+  }
+
+  // el-select 弹出层
+  .el-popper {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border);
+  }
+
+  .el-popper[data-popper-placement^="bottom"] .el-popper__arrow::before {
+    border-bottom-color: var(--color-border);
+  }
+
+  .el-popper[data-popper-placement^="top"] .el-popper__arrow::before {
+    border-top-color: var(--color-border);
+  }
+
+  .el-message-box {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border);
+  }
+
+  .el-dialog {
+    background-color: var(--color-bg-card);
+  }
+
+  .el-table {
+    background-color: var(--color-bg-card);
+    --el-table-bg-color: var(--color-bg-card);
+    --el-table-tr-bg-color: var(--color-bg-card);
+    --el-table-header-bg-color: var(--el-fill-color-light);
+    --el-table-row-hover-bg-color: var(--el-fill-color);
+    --el-table-border-color: var(--color-border);
+  }
+
+  .el-pagination {
+    --el-pagination-bg-color: var(--color-bg-card);
+    --el-pagination-button-bg-color: var(--color-bg-card);
+    --el-pagination-hover-color: var(--el-color-primary);
+  }
+
+  // 标签 Tag 适配
+  .el-tag {
+    --el-tag-bg-color: var(--el-fill-color-light);
+    --el-tag-border-color: var(--color-border);
+    --el-tag-text-color: var(--color-text-regular);
+  }
+
+  .el-tag.el-tag--primary {
+    --el-tag-bg-color: rgba(64, 158, 255, 0.15);
+    --el-tag-border-color: rgba(64, 158, 255, 0.3);
+    --el-tag-text-color: #409eff;
+  }
+
+  .el-tag.el-tag--success {
+    --el-tag-bg-color: rgba(103, 194, 58, 0.15);
+    --el-tag-border-color: rgba(103, 194, 58, 0.3);
+    --el-tag-text-color: #67c23a;
+  }
+
+  .el-tag.el-tag--warning {
+    --el-tag-bg-color: rgba(230, 162, 60, 0.15);
+    --el-tag-border-color: rgba(230, 162, 60, 0.3);
+    --el-tag-text-color: #e6a23c;
+  }
+
+  .el-tag.el-tag--danger {
+    --el-tag-bg-color: rgba(245, 108, 108, 0.15);
+    --el-tag-border-color: rgba(245, 108, 108, 0.3);
+    --el-tag-text-color: #f56c6c;
+  }
+
+  .el-tag.el-tag--info {
+    --el-tag-bg-color: var(--el-fill-color-light);
+    --el-tag-border-color: var(--color-border);
+    --el-tag-text-color: var(--color-text-secondary);
+  }
+
+  // 单选按钮组 Radio Button 适配
+  .el-radio-group {
+    .el-radio-button__inner {
+      background-color: var(--color-bg-card);
+      border-color: var(--color-border);
+      color: var(--color-text-regular);
+    }
+
+    .el-radio-button__original-radio:checked + .el-radio-button__inner {
+      background-color: var(--el-color-primary);
+      border-color: var(--el-color-primary);
+      color: #fff;
+      box-shadow: -1px 0 0 0 var(--el-color-primary);
+    }
+
+    .el-radio-button:first-child .el-radio-button__inner {
+      border-left-color: var(--color-border);
+    }
+
+    .el-radio-button__inner:hover {
+      color: var(--el-color-primary);
+    }
+  }
+
+  // 折叠面板 Collapse 适配
+  .el-collapse {
+    --el-collapse-border-color: var(--color-border);
+    --el-collapse-header-bg-color: var(--color-bg-card);
+    --el-collapse-content-bg-color: var(--color-bg-card);
+    border-color: var(--color-border);
+  }
+
+  .el-collapse-item__header {
+    background-color: var(--color-bg-card);
+    color: var(--color-text-primary);
+    border-bottom-color: var(--color-border);
+  }
+
+  .el-collapse-item__wrap {
+    background-color: var(--color-bg-card);
+    border-bottom-color: var(--color-border);
+  }
+
+  .el-collapse-item__content {
+    background-color: var(--color-bg-card);
+    color: var(--color-text-regular);
+  }
+
+  .el-collapse-item__arrow {
+    color: var(--color-text-secondary);
+  }
+
+  // 进度条 Progress 适配
+  .el-progress {
+    .el-progress-bar__outer {
+      background-color: var(--el-fill-color-light);
+    }
+  }
+
+  .el-progress-bar__innerText {
+    color: var(--color-text-primary);
+  }
+
+  // 按钮组 Button Group 适配
+  .el-button-group {
+    .el-button--default {
+      background-color: var(--color-bg-card);
+      border-color: var(--color-border);
+      color: var(--color-text-regular);
+
+      &:hover {
+        color: var(--el-color-primary);
+        border-color: var(--el-color-primary);
+      }
+    }
+  }
+
+  // 滑块 Slider 适配
+  .el-slider {
+    .el-slider__runway {
+      background-color: var(--el-fill-color-light);
+    }
+
+    .el-slider__marks-text {
+      color: var(--color-text-secondary);
+    }
+  }
+
+  // 开关 Switch 适配
+  .el-switch {
+    --el-switch-off-color: var(--el-fill-color);
+  }
+
+  // 表单 Form 适配
+  .el-form-item__label {
+    color: var(--color-text-regular);
+  }
+
+  // 数字输入框 InputNumber 适配
+  .el-input-number {
+    .el-input__wrapper {
+      background-color: var(--color-bg-card);
+    }
+  }
+
+  // 文本域 Textarea 适配
+  .el-textarea__inner {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+
+    &:focus {
+      border-color: var(--el-color-primary);
+    }
+  }
+
+  // 分页器 Pagination 详细适配
+  .el-pagination {
+    .el-pagination__total,
+    .el-pagination__jump {
+      color: var(--color-text-regular);
+    }
+
+    .el-pager li {
+      background-color: var(--color-bg-card);
+      color: var(--color-text-regular);
+
+      &:hover {
+        color: var(--el-color-primary);
+      }
+
+      &.is-active {
+        background-color: var(--el-color-primary);
+        color: #fff;
+      }
+
+      &.is-disabled {
+        color: var(--color-text-placeholder);
+        cursor: not-allowed;
+      }
+    }
+
+    .btn-prev,
+    .btn-next {
+      background-color: var(--color-bg-card);
+      color: var(--color-text-regular);
+
+      &:hover {
+        color: var(--el-color-primary);
+      }
+
+      &:disabled {
+        color: var(--color-text-placeholder);
+        cursor: not-allowed;
+      }
+    }
+
+    .el-pagination__editor {
+      .el-input__wrapper {
+        background-color: var(--color-bg-card);
+      }
+    }
+  }
+
+  // 上传组件 Upload 适配
+  .el-upload {
+    .el-upload-dragger {
+      background-color: var(--color-bg-card);
+      border-color: var(--color-border);
+
+      &:hover {
+        border-color: var(--el-color-primary);
+      }
+    }
+
+    .el-upload__text {
+      color: var(--color-text-regular);
+    }
+
+    .el-upload__tip {
+      color: var(--color-text-secondary);
+    }
+
+    .el-icon--upload {
+      color: var(--color-text-secondary);
+    }
+  }
+
+  .el-upload-list {
+    .el-upload-list__item {
+      background-color: var(--el-fill-color-light);
+      color: var(--color-text-regular);
+
+      &:hover {
+        background-color: var(--el-fill-color);
+      }
+    }
+
+    .el-upload-list__item-name {
+      color: var(--color-text-regular);
+    }
+
+    .el-upload-list__item-status-label {
+      color: var(--color-text-secondary);
+    }
+  }
+
+  // 空状态 Empty 适配
+  .el-empty {
+    .el-empty__description {
+      color: var(--color-text-secondary);
+    }
+  }
+
+  // 描述列表 Descriptions 适配
+  .el-descriptions {
+    .el-descriptions__label {
+      color: var(--color-text-secondary);
+    }
+
+    .el-descriptions__content {
+      color: var(--color-text-regular);
+    }
+  }
+
+  // 结果页 Result 适配
+  .el-result {
+    .el-result__title {
+      color: var(--color-text-primary);
+    }
+
+    .el-result__subtitle {
+      color: var(--color-text-secondary);
+    }
+  }
+
+  // 时间选择器 TimePicker 适配
+  .el-date-editor {
+    .el-input__wrapper {
+      background-color: var(--color-bg-card);
+    }
+  }
+
+  .el-picker-panel {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border);
+  }
+
+  // 骨架屏 Skeleton 适配
+  .el-skeleton {
+    .el-skeleton__item {
+      background: linear-gradient(90deg, var(--el-fill-color) 25%, var(--el-fill-color-light) 37%, var(--el-fill-color) 63%);
+    }
+  }
+}
+
+// 滚动条样式 - 全局适配（亮色和暗色）
+:root {
+  --scrollbar-bg: #f0f0f0;
+  --scrollbar-thumb: #c0c0c0;
+  --scrollbar-thumb-hover: #a0a0a0;
+}
+
+html.dark {
+  --scrollbar-bg: #2d2d2d;
+  --scrollbar-thumb: #4a4a4a;
+  --scrollbar-thumb-hover: #606060;
+}
+
+// 自定义滚动条样式
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-bg);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+
+  &:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+}
+
+// Firefox 滚动条
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-bg);
 }
 
 .el-main { padding: 20px; }

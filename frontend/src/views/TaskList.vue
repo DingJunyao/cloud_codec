@@ -2,27 +2,29 @@
   <div class="task-list">
     <div class="header">
       <h1>转码任务</h1>
-      <button @click="$router.push('/tasks/create')" class="btn-primary">
+      <el-button type="primary" @click="$router.push('/tasks/create')">
+        <el-icon><Plus /></el-icon>
         新建任务
-      </button>
+      </el-button>
     </div>
 
     <div class="filters">
-      <button
-        v-for="filter in filters"
-        :key="filter.value"
-        :class="{ active: currentFilter === filter.value }"
-        @click="currentFilter = filter.value"
-      >
-        {{ filter.label }}
-      </button>
+      <el-radio-group v-model="currentFilter" size="default">
+        <el-radio-button
+          v-for="filter in filters"
+          :key="filter.value"
+          :value="filter.value"
+        >
+          {{ filter.label }}
+        </el-radio-button>
+      </el-radio-group>
     </div>
 
     <div v-if="store.loading" class="loading">加载中...</div>
 
     <div v-else-if="filteredTasks.length === 0" class="empty">
       <p>暂无任务</p>
-      <button @click="$router.push('/tasks/create')">创建第一个任务</button>
+      <el-button type="primary" @click="$router.push('/tasks/create')">创建第一个任务</el-button>
     </div>
 
     <div v-else class="task-grid">
@@ -47,26 +49,44 @@
           <p class="time">{{ formatTime(task.created_at) }}</p>
         </div>
         <div class="card-actions" @click.stop>
-          <button
-            v-if="task.status === 'processing' || task.status === 'pending'"
-            @click="handleStop(task.id)"
-            class="btn-stop"
-          >停止</button>
-          <button
-            v-if="task.status === 'completed'"
-            @click="handleDownload(task)"
-            class="btn-download"
-          >下载</button>
-          <button
-            v-if="['completed', 'failed', 'cancelled'].includes(task.status)"
-            @click="handleRetry(task.id, task.status === 'completed')"
-            class="btn-retry"
-          >重试</button>
-          <button
-            v-if="['completed', 'failed', 'cancelled'].includes(task.status)"
-            @click="handleDelete(task.id)"
-            class="btn-delete"
-          >删除</button>
+          <el-button-group>
+            <el-button
+              v-if="task.status === 'processing' || task.status === 'pending'"
+              @click="handleStop(task.id)"
+              type="warning"
+              size="small"
+            >
+              <el-icon><VideoPause /></el-icon>
+              停止
+            </el-button>
+            <el-button
+              v-if="task.status === 'completed'"
+              @click="handleDownload(task)"
+              type="primary"
+              size="small"
+            >
+              <el-icon><Download /></el-icon>
+              下载
+            </el-button>
+            <el-button
+              v-if="['completed', 'failed', 'cancelled'].includes(task.status)"
+              @click="handleRetry(task.id, task.status === 'completed')"
+              type="warning"
+              size="small"
+            >
+              <el-icon><RefreshRight /></el-icon>
+              重试
+            </el-button>
+            <el-button
+              v-if="['completed', 'failed', 'cancelled'].includes(task.status)"
+              @click="handleDelete(task.id)"
+              type="danger"
+              size="small"
+            >
+              <el-icon><Delete /></el-icon>
+              删除
+            </el-button>
+          </el-button-group>
         </div>
       </div>
     </div>
@@ -80,6 +100,7 @@ import tasksApi from '@/api/tasks'
 import type { Task } from '@/api/tasks'
 import { formatDateTime, formatDuration, getElapsedTime } from '@/utils/datetime'
 import { success, error, confirm } from '@/utils/message'
+import { Plus, VideoPause, Download, RefreshRight, Delete } from '@element-plus/icons-vue'
 
 const store = useTasksStore()
 const currentFilter = ref('all')
@@ -223,7 +244,7 @@ onUnmounted(() => {
 <style scoped>
 .task-list {
   padding: 20px;
-  max-width: 1200px;
+  max-width: var(--page-max-width);
   margin: 0 auto;
 }
 
@@ -234,40 +255,25 @@ onUnmounted(() => {
   margin-bottom: 20px;
 }
 
+.header h1 {
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
 .filters {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
 }
 
-.filters button {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
-}
-
-.filters button.active {
-  background: #1890ff;
-  color: white;
-  border-color: #1890ff;
-}
-
 .loading, .empty {
   text-align: center;
   padding: 60px 20px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
-.empty button {
-  margin-top: 16px;
-  padding: 10px 20px;
-  background: #1890ff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.empty p {
+  color: var(--color-text-secondary);
 }
 
 .task-grid {
@@ -277,7 +283,8 @@ onUnmounted(() => {
 }
 
 .task-card {
-  border: 1px solid #eee;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
   border-radius: 8px;
   padding: 16px;
   cursor: pointer;
@@ -285,7 +292,12 @@ onUnmounted(() => {
 }
 
 .task-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px var(--color-shadow);
+  border-color: var(--color-border);
+}
+
+.card-header {
+  color: var(--color-text-primary);
 }
 
 .status {
@@ -296,22 +308,54 @@ onUnmounted(() => {
   margin-bottom: 8px;
 }
 
-.status.pending { background: #f0f0f0; }
-.status.processing { background: #e6f7ff; color: #1890ff; }
-.status.completed { background: #f6ffed; color: #52c41a; }
-.status.failed { background: #fff1f0; color: #ff4d4f; }
-.status.cancelled { background: #f5f5f5; color: #999; }
+.status.pending {
+  background: var(--el-fill-color-light);
+  color: var(--color-text-secondary);
+}
+
+.status.processing {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+html.dark .status.processing {
+  background: rgba(24, 144, 255, 0.15);
+}
+
+.status.completed {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+html.dark .status.completed {
+  background: rgba(82, 196, 26, 0.15);
+}
+
+.status.failed {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+
+html.dark .status.failed {
+  background: rgba(255, 77, 79, 0.15);
+}
+
+.status.cancelled {
+  background: var(--el-fill-color);
+  color: var(--color-text-secondary);
+}
 
 .file-name {
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 12px;
   word-break: break-all;
+  color: var(--color-text-primary);
 }
 
 .progress-bar {
   height: 6px;
-  background: #f0f0f0;
+  background: var(--el-fill-color);
   border-radius: 3px;
   margin: 8px 0;
   overflow: hidden;
@@ -327,25 +371,39 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .time {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
   margin-top: 8px;
 }
 
-.btn-primary {
-  padding: 10px 20px;
-  background: #1890ff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.card-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-lighter);
+  display: flex;
+  justify-content: flex-end;
 }
 
-.btn-primary:hover {
-  background: #40a9ff;
+@media (max-width: 768px) {
+  .task-list {
+    padding: 0;
+  }
+
+  .task-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filters :deep(.el-radio-group) {
+    flex-wrap: wrap;
+  }
+
+  .filters :deep(.el-radio-button__inner) {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
 }
 </style>

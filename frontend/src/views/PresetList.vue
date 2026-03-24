@@ -430,7 +430,7 @@ onMounted(async () => {
 <style scoped>
 .preset-list {
   padding: 20px;
-  max-width: 1200px;
+  max-width: var(--page-max-width);
   margin: 0 auto;
 }
 
@@ -441,11 +441,15 @@ onMounted(async () => {
   margin-bottom: 20px;
 }
 
+.header h1 {
+  color: var(--color-text-primary);
+}
+
 .tabs {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .tabs button {
@@ -454,6 +458,7 @@ onMounted(async () => {
   background: none;
   cursor: pointer;
   border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
 }
 
 .tabs button.active {
@@ -464,7 +469,7 @@ onMounted(async () => {
 .loading, .empty {
   text-align: center;
   padding: 60px 20px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .preset-grid {
@@ -474,9 +479,15 @@ onMounted(async () => {
 }
 
 .preset-card {
-  border: 1px solid #eee;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
   border-radius: 8px;
   padding: 16px;
+}
+
+.preset-card:hover {
+  border-color: var(--color-border);
+  box-shadow: 0 4px 12px var(--color-shadow);
 }
 
 .preset-header {
@@ -489,6 +500,7 @@ onMounted(async () => {
 .preset-header h3 {
   margin: 0;
   font-size: 16px;
+  color: var(--color-text-primary);
 }
 
 .preset-title {
@@ -499,8 +511,8 @@ onMounted(async () => {
 
 .creator-tag {
   font-size: 11px;
-  color: #999;
-  background: #f5f5f5;
+  color: var(--color-text-secondary);
+  background: var(--el-fill-color-light);
   padding: 2px 6px;
   border-radius: 4px;
 }
@@ -522,7 +534,7 @@ onMounted(async () => {
 
 .btn-delete {
   padding: 4px 12px;
-  background: #ff4d4f;
+  background: var(--color-btn-danger);
   color: white;
   border: none;
   border-radius: 4px;
@@ -530,9 +542,13 @@ onMounted(async () => {
   font-size: 12px;
 }
 
+.btn-delete:hover {
+  background: var(--color-btn-danger-hover);
+}
+
 .preset-desc {
   font-size: 13px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-bottom: 12px;
 }
 
@@ -546,7 +562,7 @@ onMounted(async () => {
   display: flex;
   gap: 16px;
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .btn-primary {
@@ -572,7 +588,7 @@ onMounted(async () => {
 }
 
 .dialog {
-  background: white;
+  background: var(--color-bg-card);
   padding: 24px;
   border-radius: 8px;
   width: 90%;
@@ -587,6 +603,7 @@ onMounted(async () => {
 
 .dialog h2 {
   margin-bottom: 20px;
+  color: var(--color-text-primary);
 }
 
 .form {
@@ -602,7 +619,7 @@ onMounted(async () => {
   margin-top: 8px;
   margin-bottom: 4px;
   padding-bottom: 4px;
-  border-bottom: 1px solid #e6f7ff;
+  border-bottom: 1px solid var(--color-border-lighter);
 }
 
 .form-row {
@@ -620,14 +637,24 @@ onMounted(async () => {
 .field label {
   font-size: 14px;
   font-weight: 500;
+  color: var(--color-text-regular);
 }
 
 .field input,
 .field select,
 .field textarea {
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: #1890ff;
 }
 
 .actions {
@@ -650,6 +677,17 @@ onMounted(async () => {
 }
 
 .actions button[type="button"] {
-  background: #f0f0f0;
+  background: var(--el-fill-color-light);
+  color: var(--color-text-regular);
+}
+
+@media (max-width: 768px) {
+  .preset-list {
+    padding: 0;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
