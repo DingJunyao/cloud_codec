@@ -62,8 +62,9 @@ class Settings(BaseSettings):
 
     # JWT 配置
     JWT_SECRET: str = Field(min_length=32)
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, gt=0)
-    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7, gt=0)
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, gt=0)  # 向后兼容，保留
+    JWT_ACCESS_TOKEN_EXPIRE_DAYS: int = Field(default=30, gt=0)  # Access token 有效期（天）
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7, gt=0)  # Refresh token 有效期（天）
 
     # CORS 配置
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"

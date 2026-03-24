@@ -32,16 +32,21 @@ def preset_to_response(preset: Preset) -> dict:
 @router.get("/", response_model=List[PresetResponse])
 async def list_presets(
     is_builtin: Optional[bool] = None,
+    all: Optional[bool] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """获取预设列表（系统预设 + 用户个人预设）"""
-    query = select(Preset).where(
-        or_(
-            Preset.is_builtin == True,
-            Preset.created_by == str(current_user.id)
-        )
-    ).order_by(Preset.is_builtin.desc(), Preset.created_at.desc())
+    # 管理员可以查看所有预设
+    if all and current_user.is_admin:
+        query = select(Preset).order_by(Preset.is_builtin.desc(), Preset.created_at.desc())
+    else:
+        query = select(Preset).where(
+            or_(
+                Preset.is_builtin == True,
+                Preset.created_by == str(current_user.id)
+            )
+        ).order_by(Preset.is_builtin.desc(), Preset.created_at.desc())
 
     if is_builtin is not None:
         query = query.where(Preset.is_builtin == is_builtin)

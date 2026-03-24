@@ -16,38 +16,40 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false },
   },
   {
-    path: '/tasks',
-    name: 'Tasks',
-    component: () => import('@/views/TaskList.vue'),
+    path: '/',
+    component: () => import('@/layouts/AppLayout.vue'),
     meta: { requiresAuth: true },
-  },
-  {
-    path: '/tasks/create',
-    name: 'TaskCreate',
-    component: () => import('@/views/TaskCreate.vue'),
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/tasks/:id',
-    name: 'TaskDetail',
-    component: () => import('@/views/TaskDetail.vue'),
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/presets',
-    name: 'Presets',
-    component: () => import('@/views/PresetList.vue'),
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/settings',
-    name: 'Settings',
-    component: () => import('@/views/Settings.vue'),
-    meta: { requiresAuth: true },
+    children: [
+      {
+        path: 'tasks',
+        name: 'Tasks',
+        component: () => import('@/views/TaskList.vue'),
+      },
+      {
+        path: 'tasks/create',
+        name: 'TaskCreate',
+        component: () => import('@/views/TaskCreate.vue'),
+      },
+      {
+        path: 'tasks/:id',
+        name: 'TaskDetail',
+        component: () => import('@/views/TaskDetail.vue'),
+      },
+      {
+        path: 'presets',
+        name: 'Presets',
+        component: () => import('@/views/PresetList.vue'),
+      },
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: () => import('@/views/Settings.vue'),
+      },
+    ]
   },
   {
     path: '/admin',
-    component: () => import('@/views/admin/AdminLayout.vue'),
+    component: () => import('@/layouts/AppLayout.vue'),
     meta: { requiresAuth: true, requiresAdmin: true },
     children: [
       {
@@ -68,6 +70,17 @@ const routes: RouteRecordRaw[] = [
         path: 'tasks',
         name: 'AdminTasks',
         component: () => import('@/views/admin/TaskMonitor.vue')
+      },
+      {
+        path: 'presets',
+        name: 'AdminPresets',
+        component: () => import('@/views/PresetList.vue'),
+        meta: { adminView: true }
+      },
+      {
+        path: 'groups',
+        name: 'AdminGroups',
+        component: () => import('@/views/admin/GroupManagement.vue')
       }
     ]
   },
@@ -84,13 +97,25 @@ router.beforeEach(async (to, _from, next) => {
   // 等待 session 恢复完成
   await authStore.restoreSession()
 
+  // 检查是否需要认证
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
-  } else if (to.name === 'Login' && authStore.isAuthenticated) {
-    next({ name: 'Tasks' })
-  } else {
-    next()
+    return
   }
+
+  // 已登录用户访问登录页，重定向到任务页
+  if (to.name === 'Login' && authStore.isAuthenticated) {
+    next({ name: 'Tasks' })
+    return
+  }
+
+  // 检查是否需要管理员权限
+  if (to.meta.requiresAdmin && !authStore.user?.is_admin) {
+    next({ name: 'Tasks' })
+    return
+  }
+
+  next()
 })
 
 export default router

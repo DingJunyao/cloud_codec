@@ -66,12 +66,39 @@
         </div>
       </div>
     </div>
+
+    <div class="section">
+      <h2>管理功能</h2>
+      <div class="management-cards">
+        <router-link to="/admin/users" class="management-card">
+          <el-icon size="32"><User /></el-icon>
+          <div class="card-title">用户管理</div>
+          <div class="card-desc">管理系统用户和权限</div>
+        </router-link>
+        <router-link to="/admin/groups" class="management-card">
+          <el-icon size="32"><UserFilled /></el-icon>
+          <div class="card-title">用户组管理</div>
+          <div class="card-desc">配置用户组和权限</div>
+        </router-link>
+        <router-link to="/admin/tasks" class="management-card">
+          <el-icon size="32"><List /></el-icon>
+          <div class="card-title">任务监控</div>
+          <div class="card-desc">查看所有转码任务</div>
+        </router-link>
+        <router-link to="/admin/presets" class="management-card">
+          <el-icon size="32"><Setting /></el-icon>
+          <div class="card-title">预设管理</div>
+          <div class="card-desc">管理转码预设</div>
+        </router-link>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { User, UserFilled, List, Setting } from '@element-plus/icons-vue'
 
 const authStore = useAuthStore()
 const loading = ref(true)
@@ -235,5 +262,41 @@ onMounted(fetchStats)
   text-align: center;
   padding: 60px;
   color: #666;
+}
+
+.management-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.management-card {
+  background: #f5f7fa;
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.management-card:hover {
+  background: #e6f7ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin-top: 12px;
+  color: #333;
+}
+
+.card-desc {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
 }
 </style>

@@ -7,10 +7,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 快速开始
 
 ```bash
-# 后端
+# 后端 API
 cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload
+
+# Worker（必须在后台运行）
+cd backend
+nohup python -m app.worker > /tmp/worker.log 2>&1 &
+tail -f /tmp/worker.log  # 查看日志
 
 # 前端
 cd frontend
@@ -19,6 +24,11 @@ npm run dev
 ```
 
 **访问**: 前端 http://localhost:5173 | 后端 http://localhost:8000 | API 文档 http://localhost:8000/docs
+
+⚠️ **Worker 注意事项**：
+- 必须使用 `nohup` 或 `screen` 在后台运行
+- 不要在前台终端运行（避免 Ctrl+Z 暂停进程）
+- 详细说明见 [`cc/task-queue.md`](cc/task-queue.md)
 
 ---
 

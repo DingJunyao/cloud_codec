@@ -38,10 +38,9 @@ async def lifespan(app: FastAPI):
     logger.info("System presets initialized")
 
     # 初始化硬件加速检测
-    from app.services.hw_accel import get_hw_accel_service
-    hw_service = get_hw_accel_service()
-    hw_status = hw_service.get_status()
-    logger.info(f"Hardware acceleration: {hw_status}")
+    from app.services.hw_accel import get_supported_hw_accels
+    supported = get_supported_hw_accels()
+    logger.info(f"Hardware acceleration supported: {supported}")
 
     # 启动 Redis 订阅器（用于接收 RQ worker 的进度消息）
     from app.tasks.websocket import redis_subscriber
@@ -112,4 +111,6 @@ async def get_config():
 
 # 包含路由
 from app.api.v1 import api_router
+from app.api import system
 app.include_router(api_router, prefix="/api")
+app.include_router(system.router, prefix="/api")

@@ -1,7 +1,7 @@
 <template>
   <div class="preset-list">
     <div class="header">
-      <h1>转码预设</h1>
+      <h1>{{ isAdminView ? '预设管理' : '转码预设' }}</h1>
       <button @click="showCreateDialog = true" class="btn-primary">
         新建预设
       </button>
@@ -9,7 +9,7 @@
 
     <div class="tabs">
       <button :class="{ active: activeTab === 'user' }" @click="activeTab = 'user'">
-        我的预设
+        {{ isAdminView ? '用户预设' : '我的预设' }}
       </button>
       <button :class="{ active: activeTab === 'system' }" @click="activeTab = 'system'">
         系统预设
@@ -19,7 +19,7 @@
     <div v-if="loading" class="loading">加载中...</div>
 
     <div v-else-if="filteredPresets.length === 0" class="empty">
-      <p>{{ activeTab === 'system' ? '暂无系统预设' : '暂无个人预设' }}</p>
+      <p>{{ activeTab === 'system' ? '暂无系统预设' : (isAdminView ? '暂无用户预设' : '暂无个人预设') }}</p>
     </div>
 
     <div v-else class="preset-grid">
@@ -29,7 +29,12 @@
         class="preset-card"
       >
         <div class="preset-header">
-          <h3>{{ preset.name }}</h3>
+          <div class="preset-title">
+            <h3>{{ preset.name }}</h3>
+            <el-tag v-if="isAdminView && !preset.is_builtin && preset.created_by" size="small" type="info">
+              用户创建
+            </el-tag>
+          </div>
           <div class="preset-actions">
             <button
               @click="handleClone(preset)"
@@ -38,7 +43,7 @@
               克隆
             </button>
             <button
-              v-if="!preset.is_builtin"
+              v-if="!preset.is_builtin && !isAdminView"
               @click="handleDelete(preset.id)"
               class="btn-delete"
             >
@@ -104,6 +109,8 @@
             <label>描述</label>
             <textarea v-model="newPreset.description" rows="2"></textarea>
           </div>
+
+          <div class="form-section-title">视频设置</div>
           <div class="form-row">
             <div class="field">
               <label>视频编码</label>
@@ -131,14 +138,61 @@
           </div>
           <div class="form-row">
             <div class="field">
-              <label>CRF 质量</label>
+              <label>CRF 质量 (0-51)</label>
               <input type="number" v-model.number="newPreset.config.video.codec_options.crf" min="0" max="51" />
             </div>
             <div class="field">
-              <label>分辨率高度</label>
-              <input type="number" v-model.number="newPreset.config.video.resolution.height" placeholder="自动" />
+              <label>目标码率</label>
+              <input v-model="newPreset.config.video.codec_options.bitrate" placeholder="如 5M, 2500K" />
             </div>
           </div>
+          <div class="form-row">
+            <div class="field">
+              <label>分辨率模式</label>
+              <select v-model="newPreset.config.video.resolution.mode">
+                <option value="auto">自动（保持原始）</option>
+                <option value="scale">缩放</option>
+                <option value="custom">自定义</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>分辨率高度</label>
+              <select v-model.number="newPreset.config.video.resolution.height" :disabled="newPreset.config.video.resolution.mode === 'auto'">
+                <option :value="null">自动</option>
+                <option :value="2160">2160p (4K)</option>
+                <option :value="1440">1440p (2K)</option>
+                <option :value="1080">1080p</option>
+                <option :value="720">720p</option>
+                <option :value="480">480p</option>
+                <option :value="360">360p</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label>帧率</label>
+              <select v-model.number="newPreset.config.video.fps">
+                <option :value="null">保持原始</option>
+                <option :value="60">60 fps</option>
+                <option :value="30">30 fps</option>
+                <option :value="24">24 fps</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>硬件加速</label>
+              <select v-model="newPreset.config.video.hw_accel">
+                <option
+                  v-for="option in availableHwAccelOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-section-title">音频设置</div>
           <div class="form-row">
             <div class="field">
               <label>音频编码</label>
@@ -147,27 +201,56 @@
                 <option value="mp3">MP3</option>
                 <option value="opus">Opus</option>
                 <option value="ac3">AC3</option>
+                <option value="copy">保持原始</option>
+                <option value="none">移除音频</option>
               </select>
             </div>
             <div class="field">
               <label>音频码率</label>
               <select v-model="newPreset.config.audio.bitrate">
-                <option value="64k">64k</option>
-                <option value="96k">96k</option>
-                <option value="128k">128k</option>
-                <option value="192k">192k</option>
-                <option value="256k">256k</option>
+                <option value="64k">64 kbps</option>
+                <option value="96k">96 kbps</option>
+                <option value="128k">128 kbps</option>
+                <option value="192k">192 kbps</option>
+                <option value="256k">256 kbps</option>
+                <option value="320k">320 kbps</option>
               </select>
             </div>
           </div>
+          <div class="form-row">
+            <div class="field">
+              <label>声道</label>
+              <select v-model.number="newPreset.config.audio.channels">
+                <option :value="1">单声道</option>
+                <option :value="2">立体声</option>
+                <option :value="6">5.1</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>采样率</label>
+              <select v-model.number="newPreset.config.audio.sample_rate">
+                <option :value="22050">22050 Hz</option>
+                <option :value="44100">44100 Hz</option>
+                <option :value="48000">48000 Hz</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-section-title">输出设置</div>
           <div class="field">
             <label>容器格式</label>
             <select v-model="newPreset.config.container">
               <option value="mp4">MP4</option>
               <option value="mkv">MKV</option>
               <option value="webm">WebM</option>
+              <option value="mov">MOV</option>
             </select>
           </div>
+          <div class="field">
+            <label>自定义 FFmpeg 参数</label>
+            <input v-model="newPreset.config.custom_params" placeholder="如 -movflags +faststart" />
+          </div>
+
           <div class="actions">
             <button type="button" @click="showCreateDialog = false">取消</button>
             <button type="submit" :disabled="creating">
@@ -182,9 +265,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue'
+import { useRoute } from 'vue-router'
 import presetsApi from '@/api/presets'
+import systemApi from '@/api/system'
 import type { Preset, EncodeConfig } from '@/api/presets'
 import { error, confirm } from '@/utils/message'
+
+const route = useRoute()
+const isAdminView = computed(() => route.meta?.adminView === true)
 
 const presets = ref<Preset[]>([])
 const activeTab = ref('user')
@@ -193,6 +281,27 @@ const showCreateDialog = ref(false)
 const showCloneDialog = ref(false)
 const creating = ref(false)
 const cloning = ref(false)
+
+// 所有硬件加速选项
+const allHwAccelOptions = [
+  { value: 'auto', label: '自动' },
+  { value: 'none', label: '禁用' },
+  { value: 'nvenc', label: 'NVIDIA NVENC' },
+  { value: 'qsv', label: 'Intel QSV' },
+  { value: 'vaapi', label: 'VAAPI' },
+  { value: 'videotoolbox', label: 'VideoToolbox' },
+  { value: 'amf', label: 'AMD AMF' }
+]
+
+// 系统支持的硬件加速列表
+const supportedHwAccels = ref<string[]>(['auto', 'none'])
+
+// 过滤可用的硬件加速选项
+const availableHwAccelOptions = computed(() => {
+  return allHwAccelOptions.filter(option =>
+    supportedHwAccels.value.includes(option.value)
+  )
+})
 
 const cloneForm = reactive({
   sourceId: '',
@@ -203,8 +312,9 @@ const cloneForm = reactive({
 const defaultConfig: EncodeConfig = {
   video: {
     codec: 'h264',
-    codec_options: { preset: 'medium', crf: 23 },
-    resolution: { mode: 'auto', keep_aspect: true },
+    codec_options: { preset: 'medium', crf: 23, bitrate: null },
+    resolution: { mode: 'auto', width: null, height: null, keep_aspect: true },
+    fps: null,
     hw_accel: 'auto'
   },
   audio: {
@@ -214,7 +324,8 @@ const defaultConfig: EncodeConfig = {
     sample_rate: 48000
   },
   container: 'mp4',
-  filters: []
+  filters: [],
+  custom_params: ''
 }
 
 const newPreset = reactive({
@@ -224,19 +335,37 @@ const newPreset = reactive({
 })
 
 const filteredPresets = computed(() => {
-  return presets.value.filter(p =>
-    activeTab.value === 'system' ? p.is_builtin : !p.is_builtin
-  )
+  if (isAdminView.value) {
+    // 管理员视图：根据选项卡显示系统预设或所有用户预设
+    return presets.value.filter(p =>
+      activeTab.value === 'system' ? p.is_builtin : !p.is_builtin
+    )
+  } else {
+    // 普通用户视图：显示系统预设和自己的预设
+    return presets.value.filter(p =>
+      activeTab.value === 'system' ? p.is_builtin : !p.is_builtin
+    )
+  }
 })
 
 const fetchPresets = async () => {
   loading.value = true
   try {
-    presets.value = await presetsApi.list()
+    // 管理员视图请求所有预设
+    presets.value = await presetsApi.list(isAdminView.value ? { all: true } : undefined)
   } catch (err) {
     console.error('加载预设失败:', err)
   } finally {
     loading.value = false
+  }
+}
+
+const fetchHwAccelSupport = async () => {
+  try {
+    const data = await systemApi.getHwAccelSupport()
+    supportedHwAccels.value = data.supported
+  } catch (err) {
+    console.error('获取硬件加速支持失败:', err)
   }
 }
 
@@ -293,7 +422,9 @@ const handleDelete = async (id: string) => {
   }
 }
 
-onMounted(fetchPresets)
+onMounted(async () => {
+  await Promise.all([fetchPresets(), fetchHwAccelSupport()])
+})
 </script>
 
 <style scoped>
@@ -358,6 +489,20 @@ onMounted(fetchPresets)
 .preset-header h3 {
   margin: 0;
   font-size: 16px;
+}
+
+.preset-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.creator-tag {
+  font-size: 11px;
+  color: #999;
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .preset-actions {
@@ -447,7 +592,17 @@ onMounted(fetchPresets)
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+}
+
+.form-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1890ff;
+  margin-top: 8px;
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e6f7ff;
 }
 
 .form-row {

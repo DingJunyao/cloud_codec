@@ -36,7 +36,7 @@ class UserService:
         email: str,
         password: str
     ) -> User:
-        """创建新用户"""
+        """创建新用户（首个注册的用户自动成为管理员）"""
         existing = await UserService.get_by_username(db, username)
         if existing:
             raise ValueError("Username already exists")
@@ -45,15 +45,30 @@ class UserService:
         if existing:
             raise ValueError("Email already exists")
 
+        # 检查是否为第一个用户
+        from sqlalchemy import func
+        result = await db.execute(select(func.count(User.id)))
+        user_count = result.scalar()
+
+        # 第一个注册的用户自动成为管理员
+        is_first_user = user_count == 0
+        is_admin = True if is_first_user else False
+
         user = User(
             username=username,
             email=email,
             password_hash=get_password_hash(password),
             is_active=True,
-            is_admin=False,
+            is_admin=is_admin,
         )
         db.add(user)
         await db.flush()
+
+        if is_first_user:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"首个用户 '{username}' 注册，自动设置为管理员")
+
         return user
 
     @staticmethod

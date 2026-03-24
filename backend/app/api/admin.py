@@ -232,32 +232,57 @@ async def toggle_user_active(
 
 @router.get("/tasks")
 async def list_all_tasks(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
     status: Optional[str] = None,
     user_id: Optional[str] = None,
     admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
     """获取所有任务列表"""
-    query = select(Task)
+    # 计算分页
+    skip = (page - 1) * page_size
+
+    # 基础查询
+    base_query = select(Task)
 
     if status:
         try:
-            query = query.where(Task.status == TaskStatus(status))
+            base_query = base_query.where(Task.status == TaskStatus(status))
         except ValueError:
             pass
 
     if user_id:
         try:
-            query = query.where(Task.user_id == UUID(user_id))
+            base_query = base_query.where(Task.user_id == UUID(user_id))
         except ValueError:
             pass
 
-    query = query.order_by(Task.created_at.desc()).offset(skip).limit(limit)
+    # 获取总数
+    count_query = select(func.count()).select_from(base_query.subquery())
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # 获取分页数据
+    query = base_query.order_by(Task.created_at.desc()).offset(skip).limit(page_size)
     result = await db.execute(query)
     tasks = result.scalars().all()
-    return [task_to_response(t) for t in tasks]
+
+    # 获取用户名映射
+    user_ids = list(set(str(t.user_id) for t in tasks))
+    users_result = await db.execute(
+        select(User).where(User.id.in_([UUID(uid) for uid in user_ids]))
+    )
+    users = {str(u.id): u.username for u in users_result.scalars().all()}
+
+    # 构建响应
+    items = []
+    for t in tasks:
+        item = task_to_response(t)
+        item["username"] = users.get(str(t.user_id), "-")
+        items.append(item)
+
+    return {"items": items, "total": total}
 
 
 @router.get("/tasks/{task_id}")
@@ -279,3 +304,66 @@ async def get_task_detail(
         raise HTTPException(status_code=404, detail="任务不存在")
 
     return task_to_response(task)
+
+
+@router.put("/users/{user_id}/group")
+async def assign_user_group(
+    user_id: str,
+    group_id: str,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """为用户分配用户组"""
+    try:
+        user_uuid = UUID(user_id)
+        group_uuid = UUID(group_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="无效的ID")
+
+    result = await db.execute(select(User).where(User.id == user_uuid))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+
+    from app.models.group import UserGroup
+    from app.services.group_service import UserGroupService
+
+    group = await UserGroupService.get_by_id(db, group_uuid)
+    if not group:
+        raise HTTPException(status_code=404, detail="用户组不存在")
+
+    await UserGroupService.assign_user(db, user, group)
+    await db.commit()
+
+    return {
+        "message": f"已将用户 {user.username} 分配到用户组 {group.name}",
+        "user": user_to_response(user)
+    }
+
+
+@router.delete("/users/{user_id}/group")
+async def remove_user_group(
+    user_id: str,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """移除用户的用户组"""
+    try:
+        user_uuid = UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="无效的用户ID")
+
+    result = await db.execute(select(User).where(User.id == user_uuid))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+
+    from app.services.group_service import UserGroupService
+
+    await UserGroupService.remove_user_group(db, user)
+    await db.commit()
+
+    return {
+        "message": f"已移除用户 {user.username} 的用户组",
+        "user": user_to_response(user)
+    }

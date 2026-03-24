@@ -1,6 +1,6 @@
 <template>
   <div class="settings">
-    <h1>设置</h1>
+    <h1>个人中心</h1>
 
     <div class="settings-section">
       <h2>个人信息</h2>
@@ -40,11 +40,11 @@
       </form>
     </div>
 
-    <div v-if="user?.is_admin" class="settings-section">
-      <h2>系统设置</h2>
-      <div class="admin-links">
-        <button @click="$router.push('/admin/users')">用户管理</button>
-        <button @click="$router.push('/admin/settings')">系统配置</button>
+    <div class="settings-section">
+      <h2>我的预设</h2>
+      <p class="section-desc">管理您的个人转码预设</p>
+      <div class="preset-link">
+        <button @click="$router.push('/presets')">前往预设管理</button>
       </div>
     </div>
   </div>
@@ -202,12 +202,13 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
-.admin-links {
-  display: flex;
-  gap: 10px;
+.section-desc {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 16px;
 }
 
-.admin-links button {
+.preset-link button {
   padding: 10px 20px;
   background: #1890ff;
   color: white;

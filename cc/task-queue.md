@@ -14,6 +14,99 @@
     └──────────── WebSocket 进度 ────────┘
 ```
 
+## 启动 Worker
+
+### 重要说明
+
+⚠️ **Worker 必须在后台运行！**
+
+```bash
+cd backend
+nohup python -m app.worker > /tmp/worker.log 2>&1 &
+
+# 查看日志
+tail -f /tmp/worker.log
+```
+
+**不要**直接在前台终端运行 `python -m app.worker`，因为：
+- 在终端按 `Ctrl+Z` 会暂停 Worker 及其子进程
+- 终端关闭会导致 Worker 进程终止
+- 子进程（ffmpeg）可能会收到终端信号而暂停
+
+### 启动命令
+
+```bash
+# 方式1: 使用 nohup（推荐）
+cd backend
+nohup python -m app.worker > /tmp/worker.log 2>&1 &
+
+# 方式2: 使用 screen
+screen -dmS worker python -m app.worker
+screen -r worker  # 重新连接
+
+# 方式3: 使用 systemd（生产环境推荐）
+# 创建 /etc/systemd/system/cloudcodec-worker.service
+```
+
+### 停止 Worker
+
+```bash
+# 查找 worker 进程
+ps aux | grep "python.*worker"
+
+# 终止进程
+kill <PID>
+
+# 如果进程被暂停（状态 T），强制终止
+kill -9 <PID>
+```
+
+## 超时配置
+
+转码任务可能需要很长时间，已配置：
+
+- **队列默认超时**: 1 年（31536000 秒）
+- **任务超时**: 1 年（31536000 秒）
+
+配置位置：
+- `backend/app/worker.py`: `Queue(..., default_timeout=31536000)`
+- `backend/app/services/task_service.py`: `queue.enqueue(..., job_timeout=31536000)`
+
+## 处理卡住的任务
+
+如果 Worker 进程异常终止，任务可能会卡在 `PROCESSING` 状态。
+
+### 使用重队脚本
+
+```bash
+cd backend
+python requeue_pending.py
+```
+
+这个脚本会：
+1. 将所有 `PROCESSING` 状态的任务重置为 `PENDING`
+2. 将 `PENDING` 任务重新加入队列
+
+### 手动处理
+
+```bash
+# 1. 检查进程状态
+ps aux | grep -E "(python.*worker|ffmpeg)"
+
+# 如果看到进程状态是 T（暂停），需要终止
+kill -9 <PID>
+
+# 2. 检查队列
+redis-cli LLEN rq:queue:default  # 查看队列长度
+redis-cli DEL rq:queue:default   # 清空队列
+
+# 3. 运行重队脚本
+python requeue_pending.py
+
+# 4. 重启 Worker
+nohup python -m app.worker > /tmp/worker.log 2>&1 &
+```
+
 ## Worker 函数
 
 **位置**: `backend/app/tasks/encode.py`
@@ -41,120 +134,11 @@ job.save_meta()
 ```python
 # 更新任务进度到数据库
 task = await TaskService.update_progress(db, task, progress)
-await db.commit()
-
-# 通知 WebSocket
-await broadcast_task_progress(task_id, {
-    "status": "processing",
-    "progress": progress,
-    "message": f"转码中... {progress}%"
-})
-```
-
-## 运行 Worker
-
-```bash
-cd backend
-
-# 基础 worker
-rq worker app.tasks.encode --url redis://localhost:6379/0
-
-# 带详细日志
-rq worker app.tasks.encode --url redis://localhost:6379/0 --log-level=debug
-
-# 多 worker 并行处理
-rq worker app.tasks.encode --url redis://localhost:6379/0 --num-workers 4
-```
-
-## 入队任务
-
-```python
-from rq import Queue
-from redis import Redis
-
-queue = Queue("encode", connection=Redis.from_url("redis://localhost:6379/0"))
-
-# 入队
-job = queue.enqueue(
-    'app.tasks.encode.encode_task',
-    task_id=str(task.id),
-    user_id=str(user.id),
-    timeout='1h'  # 1小时超时
-)
-
-# 获取 job ID
-job_id = job.id
-```
-
-## 同步数据库会话
-
-RQ worker 运行在同步上下文，需要同步数据库会话：
-
-```python
-def get_db_sync():
-    """创建同步数据库会话"""
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-    from app.core.config import settings
-
-    # 移除 async 驱动前缀
-    sync_url = settings.DATABASE_URL.replace("+aiosqlite", "").replace("+asyncpg", "")
-
-    engine = create_engine(sync_url, echo=settings.APP_ENV == "development")
-    SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
-
-    from contextlib import contextmanager
-
-    @contextmanager
-    def get_session():
-        session = SessionLocal()
-        try:
-            yield session
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-
-    return get_session()
-```
-
-使用：
-```python
-db_gen = get_db_sync()
-db = next(db_gen)
-try:
-    task = db.query(Task).get(task_id)
-    # ... 处理
-finally:
-    db.close()
-```
-
-## 错误处理
-
-Worker 中的异常会自动标记任务为失败：
-
-```python
-try:
-    result = await process_transcode(task)
-except Exception as e:
-    # 更新任务状态为失败
-    task.status = TaskStatus.FAILED
-    task.error_message = str(e)
-    await db.commit()
-    raise  # RQ 会记录异常
-```
-
-查看失败任务：
-```bash
-rq info --url redis://localhost:6379/0
-rq failed --url redis://localhost:6379/0
 ```
 
 ## 监控
 
-### RQ Dashboard
+### rq-dashboard
 
 ```bash
 pip install rq-dashboard
@@ -185,15 +169,13 @@ rq empty --url redis://localhost:6379/0 default
 ```bash
 # Redis 连接
 REDIS_URL=redis://localhost:6379/0
-
-# 任务超时（秒）
-RQ_DEFAULT_TIMEOUT=3600
 ```
 
 ## 最佳实践
 
 1. **幂等性**: Worker 函数应该是幂等的，可以安全重试
-2. **超时**: 为长时间运行的任务设置合理的超时
+2. **超时**: 为长时间运行的任务设置合理的超时（已配置1年）
 3. **错误记录**: 记录详细错误信息到数据库
 4. **进度更新**: 定期更新任务进度，即使很小的增量
 5. **资源清理**: 使用 `finally` 确保资源释放
+6. **后台运行**: 始终使用 `nohup` 或 `screen` 启动 Worker

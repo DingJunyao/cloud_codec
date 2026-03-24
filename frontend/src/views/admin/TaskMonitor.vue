@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import request from '@/api/request'
 import type { User } from '@/api/presets'
 import { formatDateTime } from '@/utils/datetime'
@@ -87,6 +87,7 @@ const loading = ref(false)
 const tasks = ref<any[]>([])
 const users = ref<User[]>([])
 const total = ref(0)
+let pollInterval: ReturnType<typeof setInterval> | null = null
 
 const statusText = (status: string) => {
   const map: Record<string, string> = {
@@ -109,8 +110,8 @@ const fetchTasks = async () => {
     if (userFilter.value) params.user_id = userFilter.value
 
     const response = await request.get('/admin/tasks', { params })
-    tasks.value = response.data.items
-    total.value = response.data.total
+    tasks.value = response.items
+    total.value = response.total
   } catch (err) {
     console.error('获取任务失败:', err)
   } finally {
@@ -121,14 +122,13 @@ const fetchTasks = async () => {
 const fetchUsers = async () => {
   try {
     const response = await request.get('/admin/users')
-    users.value = response.data.items || response.data
+    users.value = response.items || response
   } catch (err) {
     console.error('获取用户失败:', err)
   }
 }
 
 const viewTask = (taskId: string) => {
-  // 跳转到任务详情页面或显示所有任务， view 详情
   info('功能待实现')
 }
 
@@ -158,6 +158,14 @@ const nextPage = () => {
 onMounted(() => {
   fetchTasks()
   fetchUsers()
+  // 每10秒轮询一次
+  pollInterval = setInterval(fetchTasks, 10000)
+})
+
+onUnmounted(() => {
+  if (pollInterval) {
+    clearInterval(pollInterval)
+  }
 })
 </script>
 
@@ -236,7 +244,7 @@ th {
   position: relative;
 }
 
- .progress {
+.progress {
   height: 100%;
   background: #1890ff;
   border-radius: 4px;
@@ -287,7 +295,7 @@ th {
   cursor: pointer;
 }
 
- .pagination button:disabled {
+.pagination button:disabled {
   background: #f5f5f5;
   cursor: not-allowed;
 }

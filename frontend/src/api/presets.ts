@@ -77,8 +77,10 @@ export interface Preset {
 export default {
   /**
    * 获取预设列表
+   * @param params.is_builtin - 猉是否为系统内置筛选
+   * @param params.all - 管理员查看所有预设
    */
-  list(params?: { is_builtin?: boolean }) {
+  list(params?: { is_builtin?: boolean; all?: boolean }) {
     return request.get<any, Preset[]>('/presets/', { params })
   },
 

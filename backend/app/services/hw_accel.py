@@ -1,322 +1,150 @@
-"""硬件加速检测服务"""
+"""硬件加速支持检测"""
 import subprocess
-import platform
 import logging
-from typing import Optional
+from typing import List, Optional, Dict, Any
 from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
-# 硬件加速优先级（可配置）
-HW_ACCEL_PRIORITY = [
-    'nvenc',        # NVIDIA GPU
-    'qsv',          # Intel Quick Sync
-    'vaapi',        # Linux VAAPI
-    'videotoolbox', # macOS
-    'amf',          # AMD
-]
-
-# 编解码器到硬件编码器的映射
-ENCODER_MAP = {
-    'h264': {
-        'nvenc': 'h264_nvenc',
-        'qsv': 'h264_qsv',
-        'vaapi': 'h264_vaapi',
-        'videotoolbox': 'h264_videotoolbox',
-        'amf': 'h264_amf',
-        'software': 'libx264',
-    },
-    'h265': {
-        'nvenc': 'hevc_nvenc',
-        'qsv': 'hevc_qsv',
-        'vaapi': 'hevc_vaapi',
-        'videotoolbox': 'hevc_videotoolbox',
-        'amf': 'hevc_amf',
-        'software': 'libx265',
-    },
-    'hevc': {
-        'nvenc': 'hevc_nvenc',
-        'qsv': 'hevc_qsv',
-        'vaapi': 'hevc_vaapi',
-        'videotoolbox': 'hevc_videotoolbox',
-        'amf': 'hevc_amf',
-        'software': 'libx265',
-    },
-    'vp9': {
-        'nvenc': None,  # 不支持
-        'qsv': None,
-        'vaapi': 'vp9_vaapi',
-        'videotoolbox': None,
-        'amf': None,
-        'software': 'libvpx-vp9',
-    },
-    'av1': {
-        'nvenc': 'av1_nvenc',
-        'qsv': 'av1_qsv',
-        'vaapi': 'av1_vaapi',
-        'videotoolbox': None,
-        'amf': 'av1_amf',
-        'software': 'libaom-av1',
-    },
-}
-
-# 解码器映射
-DECODER_MAP = {
-    'h264': {
-        'nvenc': 'h264_cuvid',
-        'qsv': 'h264_qsv',
-        'vaapi': 'h264_vaapi',
-        'videotoolbox': 'h264',
-        'amf': 'h264',
-        'software': 'h264',
-    },
-    'h265': {
-        'nvenc': 'hevc_cuvid',
-        'qsv': 'hevc_qsv',
-        'vaapi': 'hevc_vaapi',
-        'videotoolbox': 'hevc',
-        'amf': 'hevc',
-        'software': 'hevc',
-    },
-}
-
 
 class HardwareAccelService:
-    """硬件加速检测和管理服务"""
-
-    _instance: Optional['HardwareAccelService'] = None
-    _available: dict[str, bool] = {}
-    _ffmpeg_path: str = 'ffmpeg'
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
+    """硬件加速服务"""
 
     def __init__(self):
-        if self._initialized:
-            return
-        self._initialized = True
-        self._detect_all()
+        self._supported: Optional[List[str]] = None
+        self._encoders: Optional[Dict[str, List[str]]] = None
 
-    def _detect_all(self):
-        """检测所有硬件加速方案"""
-        system = platform.system()
-
-        # 根据系统调整优先级
-        if system == 'Darwin':  # macOS
-            priority = ['videotoolbox', 'nvenc', 'qsv']
-        elif system == 'Linux':
-            priority = ['nvenc', 'vaapi', 'qsv', 'amf']
-        else:  # Windows
-            priority = ['nvenc', 'qsv', 'amf']
-
-        logger.info(f"检测硬件加速，系统: {system}")
-
-        for hw_accel in priority:
-            available = self._detect(hw_accel)
-            self._available[hw_accel] = available
-            status = "可用" if available else "不可用"
-            logger.info(f"  {hw_accel}: {status}")
-
-    def _detect(self, hw_accel: str) -> bool:
-        """检测特定硬件加速是否可用"""
-        detectors = {
-            'nvenc': self._detect_nvenc,
-            'qsv': self._detect_qsv,
-            'vaapi': self._detect_vaapi,
-            'videotoolbox': self._detect_videotoolbox,
-            'amf': self._detect_amf,
-        }
-
-        detector = detectors.get(hw_accel)
-        if detector:
-            try:
-                return detector()
-            except Exception as e:
-                logger.debug(f"检测 {hw_accel} 时出错: {e}")
-                return False
-        return False
-
-    def _detect_nvenc(self) -> bool:
-        """检测 NVIDIA NVENC - 需要 NVIDIA GPU 和驱动"""
-        try:
-            # 首先检查 FFmpeg 是否支持
-            result = subprocess.run(
-                [self._ffmpeg_path, '-hide_banner', '-encoders'],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            if 'h264_nvenc' not in result.stdout:
-                return False
-
-            # 检查 NVIDIA 驱动是否存在（nvidia-smi）
-            try:
-                nvidia_smi = subprocess.run(
-                    ['nvidia-smi'],
-                    capture_output=True,
-                    timeout=5
-                )
-                return nvidia_smi.returncode == 0
-            except (FileNotFoundError, subprocess.TimeoutExpired):
-                return False
-        except Exception:
-            return False
-
-    def _detect_vaapi(self) -> bool:
-        """检测 Linux VAAPI - 需要实际测试硬件编码"""
-        if platform.system() != 'Linux':
-            return False
-        try:
-            # 检查 /dev/dri/renderD128 是否存在
-            import os
-            if not os.path.exists('/dev/dri/renderD128'):
-                return False
-
-            # 检查 FFmpeg 是否支持 VAAPI
-            result = subprocess.run(
-                [self._ffmpeg_path, '-hide_banner', '-encoders'],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            if 'vaapi' not in result.stdout:
-                return False
-
-            # 实际测试 VAAPI 是否可用（关键！）
-            test_result = subprocess.run(
-                [self._ffmpeg_path, '-hide_banner', '-vaapi_device', '/dev/dri/renderD128',
-                 '-f', 'lavfi', '-i', 'nullsrc=s=256x256:d=0.1',
-                 '-vf', 'format=nv12,hwupload', '-c:v', 'h264_vaapi', '-f', 'null', '-'],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            # 如果返回码为 0，VAAPI 可用
-            return test_result.returncode == 0
-        except Exception:
-            return False
-
-    def _detect_qsv(self) -> bool:
-        """检测 Intel Quick Sync"""
-        try:
-            result = subprocess.run(
-                [self._ffmpeg_path, '-hide_banner', '-encoders'],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            return 'h264_qsv' in result.stdout and 'hevc_qsv' in result.stdout
-        except Exception:
-            return False
-
-    def _detect_videotoolbox(self) -> bool:
-        """检测 macOS VideoToolbox"""
-        if platform.system() != 'Darwin':
-            return False
-        try:
-            result = subprocess.run(
-                [self._ffmpeg_path, '-hide_banner', '-encoders'],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            return 'videotoolbox' in result.stdout
-        except Exception:
-            return False
-
-    def _detect_amf(self) -> bool:
-        """检测 AMD AMF"""
-        if platform.system() != 'Windows':
-            return False
-        try:
-            result = subprocess.run(
-                [self._ffmpeg_path, '-hide_banner', '-encoders'],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            return 'h264_amf' in result.stdout and 'hevc_amf' in result.stdout
-        except Exception:
-            return False
-
-    def get_available(self) -> list[str]:
-        """获取所有可用的硬件加速方案"""
-        return [k for k, v in self._available.items() if v]
+    def get_supported(self) -> List[str]:
+        """获取支持的硬件加速方法"""
+        if self._supported is None:
+            self._supported = get_supported_hw_accels()
+        return self._supported
 
     def is_available(self, hw_accel: str) -> bool:
-        """检查特定硬件加速是否可用"""
-        return self._available.get(hw_accel, False)
+        """检查硬件加速是否可用"""
+        if hw_accel in ["auto", "none"]:
+            return True
+        return hw_accel in self.get_supported()
 
     def get_best_available(self) -> Optional[str]:
-        """获取最佳可用硬件加速方案"""
-        for hw_accel in HW_ACCEL_PRIORITY:
-            if self._available.get(hw_accel, False):
-                return hw_accel
+        """获取最佳可用的硬件加速方法"""
+        supported = self.get_supported()
+        # 按优先级排序（nvenc > qsv > vaapi > videotoolbox > amf）
+        priority = ["nvenc", "qsv", "vaapi", "videotoolbox", "amf"]
+        for accel in priority:
+            if accel in supported:
+                return accel
         return None
 
-    def get_encoder(self, codec: str, hw_accel: str = 'auto') -> str:
-        """
-        获取编码器名称
-
-        Args:
-            codec: 编解码器 (h264, h265, vp9, av1)
-            hw_accel: 硬件加速类型 (auto, none, nvenc, qsv, vaapi, videotoolbox, amf)
-
-        Returns:
-            编码器名称
-        """
-        codec_map = ENCODER_MAP.get(codec, ENCODER_MAP.get('h264'))
-
-        if hw_accel == 'none':
-            return codec_map['software']
-
-        if hw_accel == 'auto':
-            # 自动选择最佳可用
-            best = self.get_best_available()
-            if best and codec_map.get(best):
-                return codec_map[best]
-            return codec_map['software']
-
-        # 指定硬件加速
-        if self._available.get(hw_accel, False):
-            encoder = codec_map.get(hw_accel)
-            if encoder:
-                return encoder
-
-        # 降级到软件编码
-        logger.warning(f"硬件加速 {hw_accel} 不可用，降级到软件编码")
-        return codec_map['software']
-
-    def get_decoder(self, codec: str, hw_accel: str = 'auto') -> str:
-        """获取解码器名称"""
-        codec_map = DECODER_MAP.get(codec, {})
-
-        if hw_accel == 'none' or hw_accel == 'auto':
-            if hw_accel == 'auto':
-                best = self.get_best_available()
-                if best and codec_map.get(best):
-                    return codec_map[best]
-            return codec_map.get('software', codec)
-
-        if self._available.get(hw_accel, False):
-            return codec_map.get(hw_accel, codec_map.get('software', codec))
-
-        return codec_map.get('software', codec)
-
-    def get_status(self) -> dict:
-        """获取硬件加速状态摘要"""
+    def get_status(self) -> Dict[str, Any]:
+        """获取硬件加速状态"""
         return {
-            'available': self.get_available(),
-            'best': self.get_best_available(),
-            'details': dict(self._available),
-            'system': platform.system(),
+            "supported": self.get_supported(),
+            "available_count": len(self.get_supported())
         }
 
 
-# 全局单例
+@lru_cache
+def get_supported_hw_accels() -> List[str]:
+    """获取系统支持的硬件加速方法列表（带缓存）"""
+    supported = ["auto", "none"]  # 始终支持
+
+    # 测试各种硬件编码器是否真的可用
+    encoders_to_test = [
+        ("nvenc", "h264_nvenc"),
+        ("qsv", "h264_qsv"),
+        ("vaapi", "h264_vaapi"),
+        ("videotoolbox", "h264_videotoolbox"),
+        ("amf", "h264_amf")
+    ]
+
+    for accel_name, encoder in encoders_to_test:
+        if _test_encoder_available(encoder):
+            supported.append(accel_name)
+            logger.info(f"硬件编码器可用: {accel_name} ({encoder})")
+        else:
+            logger.debug(f"硬件编码器不可用: {accel_name} ({encoder})")
+
+    return supported
+
+
+def _test_encoder_available(encoder: str) -> bool:
+    """测试编码器是否真的可用"""
+    try:
+        # 根据编码器选择合适的 preset 参数
+        preset_map = {
+            "h264_nvenc": "p1",
+            "hevc_nvenc": "p1",
+            "h264_qsv": "faster",
+            "hevc_qsv": "faster",
+            "h264_vaapi": "",  # vaapi 不支持 preset
+            "hevc_vaapi": "",
+            "h264_videotoolbox": "medium",
+            "hevc_videotoolbox": "medium",
+            "h264_amf": "speed",
+            "hevc_amf": "speed"
+        }
+
+        cmd = [
+            "ffmpeg",
+            "-f", "lavfi",
+            "-i", "testsrc=duration=1:size=160x120:rate=1",
+            "-c:v", encoder
+        ]
+
+        # 添加 preset 参数（如果支持）
+        preset = preset_map.get(encoder, "")
+        if preset:
+            cmd.extend(["-preset", preset])
+
+        cmd.extend(["-f", "null", "-"])
+
+        # 使用 Popen 替代 run，以支持超时终止和 start_new_session
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            start_new_session=True  # 创建新会话，避免终端信号影响
+        )
+        try:
+            stdout, stderr = process.communicate(timeout=5)
+
+            # 检查是否有编码器加载失败的关键错误
+            error_output = stderr.lower()
+            critical_errors = [
+                "cannot load",
+                "could not load",
+                "no nvidia",
+                "libcuda.so.1",
+                "libnpp",
+                "driver not found",
+                "no intel media",
+                "libva",
+                "videotoolbox"
+            ]
+
+            for error in critical_errors:
+                if error in error_output:
+                    logger.debug(f"{encoder} 检测到关键错误: {error}")
+                    return False
+
+            # 成功编码
+            return process.returncode == 0
+        except subprocess.TimeoutExpired:
+            # 超时时终止进程
+            process.terminate()
+            try:
+                process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+            return False
+    except Exception as e:
+        logger.debug(f"{encoder} 测试异常: {e}")
+        return False
+
+
 _hw_accel_service: Optional[HardwareAccelService] = None
 
 
@@ -328,16 +156,69 @@ def get_hw_accel_service() -> HardwareAccelService:
     return _hw_accel_service
 
 
-def get_encoder(codec: str, hw_accel: str = 'auto') -> str:
-    """便捷函数：获取编码器"""
-    return get_hw_accel_service().get_encoder(codec, hw_accel)
+def get_available_hw_accel() -> List[str]:
+    """获取可用的硬件加速列表"""
+    return get_hw_accel_service().get_supported()
 
 
-def get_decoder(codec: str, hw_accel: str = 'auto') -> str:
-    """便捷函数：获取解码器"""
-    return get_hw_accel_service().get_decoder(codec, hw_accel)
+def get_encoder(codec: str, hw_accel: str = "auto") -> str:
+    """根据编解码器和硬件加速获取编码器名称"""
+    if hw_accel == "none":
+        hw_accel = None
+    
+    # H.264 编码器
+    if codec.lower() in ["h264", "h.264"]:
+        if hw_accel == "nvenc":
+            return "h264_nvenc"
+        if hw_accel == "qsv":
+            return "h264_qsv"
+        if hw_accel == "vaapi":
+            return "h264_vaapi"
+        if hw_accel == "videotoolbox":
+            return "h264_videotoolbox"
+        if hw_accel == "amf":
+            return "h264_amf"
+        return "libx264"
+    
+    # H.265 编码器
+    if codec.lower() in ["h265", "hevc", "h.265"]:
+        if hw_accel == "nvenc":
+            return "hevc_nvenc"
+        if hw_accel == "qsv":
+            return "hevc_qsv"
+        if hw_accel == "vaapi":
+            return "hevc_vaapi"
+        if hw_accel == "videotoolbox":
+            return "hevc_videotoolbox"
+        if hw_accel == "amf":
+            return "hevc_amf"
+        return "libx265"
+    
+    # 其他编解码器返回原值
+    return codec
 
 
-def get_available_hw_accel() -> list[str]:
-    """便捷函数：获取可用硬件加速列表"""
-    return get_hw_accel_service().get_available()
+def get_decoder(codec: str, hw_accel: str = "auto") -> str:
+    """根据编解码器和硬件加速获取解码器名称"""
+    if hw_accel in ["none", "auto"]:
+        return codec
+    
+    # H.264 解码器
+    if codec.lower() in ["h264", "h.264"]:
+        if hw_accel == "nvenc":
+            return "h264_cuvid"
+        if hw_accel == "qsv":
+            return "h264_qsv"
+        if hw_accel == "vaapi":
+            return "h264_vaapi"
+    
+    # H.265 解码器
+    if codec.lower() in ["h265", "hevc", "h.265"]:
+        if hw_accel == "nvenc":
+            return "hevc_cuvid"
+        if hw_accel == "qsv":
+            return "hevc_qsv"
+        if hw_accel == "vaapi":
+            return "hevc_vaapi"
+    
+    return codec
