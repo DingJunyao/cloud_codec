@@ -74,18 +74,15 @@ class TaskService:
 
     def _enqueue_task(self, task_id: str, user_id: str):
         """将任务加入队列"""
-        from rq import Queue
-        from redis import Redis
         from redis.exceptions import RedisError
-        from app.core.config import settings
+        from app.celery_app import celery_app
         from app.tasks.encode import encode_task
 
         try:
-            redis_conn = Redis.from_url(settings.REDIS_URL)
-            # 测试连接
-            redis_conn.ping()
-            queue = Queue(connection=redis_conn)
-            queue.enqueue(encode_task, task_id, user_id, job_timeout=31536000)  # 1年超时
+            # 测试 Redis 连接
+            celery_app.backend.client.ping()
+            # 使用 Celery 发送任务
+            encode_task.delay(task_id, user_id)
         except RedisError as e:
             raise ConnectionError(f"任务队列服务不可用，请确保 Redis 已启动: {e}")
 

@@ -1,15 +1,17 @@
-"""RQ 转码任务入口"""
-import asyncio
+"""Celery 转码任务"""
 import logging
 from datetime import datetime, timezone
-from rq import get_current_job
+from celery import current_task
+
+from app.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
 
-def encode_task(task_id: str, user_id: str) -> str:
+@celery_app.task(name="app.tasks.encode.encode_task", bind=True)
+def encode_task(self, task_id: str, user_id: str) -> str:
     """
-    RQ 任务入口：执行转码任务
+    Celery 任务：执行转码任务
 
     Args:
         task_id: 任务ID
@@ -18,37 +20,13 @@ def encode_task(task_id: str, user_id: str) -> str:
     Returns:
         结果消息
     """
-    # 在 RQ worker 中可能已有事件循环
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # 如果循环正在运行，创建新的
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    asyncio.run,
-                    _encode_task_async(task_id, user_id)
-                )
-                return future.result()
-        else:
-            return loop.run_until_complete(_encode_task_async(task_id, user_id))
-    except RuntimeError:
-        # 没有事件循环，创建新的
-        return asyncio.run(_encode_task_async(task_id, user_id))
-
-
-async def _encode_task_async(task_id: str, user_id: str) -> str:
-    """异步执行转码任务"""
-    job = get_current_job()
-
-    # 获取数据库会话
+    import asyncio
+    from uuid import UUID
     from sqlalchemy import create_engine, select
     from sqlalchemy.orm import sessionmaker
     from app.core.config import settings
     from app.models.task import Task, TaskStatus
     from app.tasks.transcode_worker import TranscodeWorker
-    from uuid import UUID
-    from datetime import datetime
 
     # 创建同步引擎
     sync_url = settings.DATABASE_URL
@@ -80,7 +58,7 @@ async def _encode_task_async(task_id: str, user_id: str) -> str:
 
         # 创建工作器并执行
         worker = TranscodeWorker(task_id)
-        success = await worker.start(task)
+        success = asyncio.run(worker.start(task))
 
         # 刷新任务状态
         session.refresh(task)
@@ -111,5 +89,6 @@ async def _encode_task_async(task_id: str, user_id: str) -> str:
             pass
 
         raise
+
     finally:
         session.close()
