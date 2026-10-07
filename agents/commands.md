@@ -15,6 +15,22 @@ uvicorn app.main:app --reload
 uvicorn app.main:app --reload --port 8001
 ```
 
+## 依赖管理
+
+后端有两份依赖描述，必须保持等价（相同的包、相同的版本约束），以哪种方式安装结果都一致：
+
+- `backend/pyproject.toml` 的 `[project].dependencies` — 供 `uv` / `pip install -e .` 使用
+- `backend/requirements.txt` — 供 `pip install -r` 使用
+
+新增依赖时两处都要加，版本约束保持一致。修改 pyproject.toml 后需重新生成锁文件：
+
+```bash
+cd backend
+uv lock
+```
+
+可选依赖组（仅 pyproject.toml）：`dev`（pytest/ruff/mypy）、`mysql`（pymysql）、`postgresql`（psycopg2-binary）。
+
 ## Worker（任务队列）
 
 ⚠️ **必须在后台运行**
@@ -85,13 +101,15 @@ npm run preview
 
 ## Redis 队列管理
 
+任务队列为 Celery（broker 为 Redis，默认队列名 `celery`）：
+
 ```bash
 # 查看队列长度
-redis-cli LLEN rq:queue:default
+redis-cli LLEN celery
 
-# 清空队列
-redis-cli DEL rq:queue:default
+# 查看 Celery worker 状态与正在执行的任务
+celery -A app.celery_app inspect active
 
-# 查看所有 RQ 相关的 key
-redis-cli KEYS "rq:*"
+# 清空队列（谨慎操作，会丢弃未执行的任务消息）
+redis-cli DEL celery
 ```
